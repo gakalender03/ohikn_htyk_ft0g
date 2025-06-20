@@ -22,7 +22,7 @@ class Utils {
           ethers.zeroPadValue('0x01', 32), 
           ethers.zeroPadValue('0x03', 32), 
           ethers.zeroPadValue('0x60', 32), 
-          ethers.zeroPadValue('0x2c0', 32), // Replaced hexZeroPad with zeroPadValue
+          ethers.zeroPadValue('0x02c0', 32), // Replaced hexZeroPad with zeroPadValue
           ethers.zeroPadValue('0x140', 32), 
           ethers.zeroPadValue('0x180', 32), 
           ethers.zeroPadValue('0x1c0', 32), 
