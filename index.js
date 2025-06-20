@@ -394,3 +394,14 @@ async function main() {
       logger.success('All operations completed');
 
       rl.close();
+      process.exit(0);
+    });
+  } catch (error) {
+    logger.critical(`Main process error: ${error.message}`);
+    rl.close();
+    process.exit(1);
+  }
+}
+
+// Call the main function
+main();
