@@ -6,7 +6,7 @@ const CONFIG = {
   SEI_RPC: 'https://evm-rpc-testnet.sei-apis.com', // Sei testnet RPC
   UNION_GRAPHQL: 'https://graphql.union.build/v1/graphql',
   CONTRACT_ADDRESS: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03', // Union Bridge contract address
-  GAS_LIMIT: 1000000, // Increased gas limit
+  GAS_LIMIT: 300000, // Increased gas limit
   EXPLORER_URL: 'https://seitrace.com', // Replace with Sei/Corn explorer if available
 };
 
@@ -18,6 +18,42 @@ class Utils {
 
   static timelog() {
     return new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+  }
+
+  // Helper to generate dynamic instruction payload
+  static generateInstructionPayload(senderAddress, destinationAddress, amount) {
+    // Convert amount to hex string (32 bytes)
+    const amountHex = ethers.toBeHex(amount, 32).substring(2);
+
+    // Helper to pad addresses to 20 bytes (40 chars)
+    const padAddress = (addr) => addr.startsWith('0x') ? addr.substring(2).padStart(40, '0') : addr.padStart(40, '0');
+
+    // Construct the dynamic payload
+    const payload = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'],
+      [
+        [
+          ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes(senderAddress), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('amount'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes(amount.toString()), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32),
+        ],
+        [
+          ethers.zeroPadValue(ethers.toUtf8Bytes(CONFIG.CONTRACT_ADDRESS), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes(destinationAddress), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('denom'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32),
+        ]
+      ]
+    );
+
+    return [
+      0,    // instructionType (uint8)
+      2,    // instructionVersion (uint8)
+      payload
+    ];
   }
 }
 
@@ -74,135 +110,64 @@ class BridgeManager {
     this.txManager = new TransactionManager(provider, this.logger);
   }
 
-  async bridgeTokens(wallet, amount, destination) {
-  try {
-    this.logger.info(`Bridging ${ethers.formatUnits(amount, 18)} SEI to ${destination}`);
-    this.logger.info(`Wallet: ${wallet.address}`);
+  async bridgeTokens(wallet, amount, destinationAddress) {
+    try {
+      this.logger.info(`Bridging ${ethers.formatUnits(amount, 18)} SEI to ${destinationAddress}`);
+      this.logger.info(`Wallet: ${wallet.address}`);
 
-    // 1. channelId type uint32 with data 2
-    const channelId = 2;
+      // 1. channelId type uint32 with data 2
+      const channelId = 2;
 
-    // 2. timeoutHeight type uint64 with data 0
-    const timeoutHeight = 0;
+      // 2. timeoutHeight type uint64 with data 0
+      const timeoutHeight = 0;
 
-    // 3. timeoutTimestamp type uint64 with current timestamp in nanoseconds
-    const timeoutTimestamp = BigInt(Math.floor(Date.now() / 1000)) * BigInt(1000000000);
+      // 3. timeoutTimestamp type uint64 with current timestamp in nanoseconds
+      const timeoutTimestamp = BigInt(Math.floor(Date.now() / 1000)) * BigInt(1000000000);
 
-    // 4. salt type bytes32 with random data
-    const salt = ethers.keccak256(ethers.solidityPacked(
-      ['address', 'uint256'],
-      [wallet.address, timeoutTimestamp]
-    ));
+      // 4. salt type bytes32 with random data
+      const salt = ethers.keccak256(ethers.solidityPacked(
+        ['address', 'uint256'],
+        [wallet.address, timeoutTimestamp]
+      ));
 
-    // 5. Generate dynamic instruction payload
-    const instruction = this.generateInstructionPayload(wallet.address, destination, amount);
+      // 5. Generate dynamic instruction payload
+      const instruction = Utils.generateInstructionPayload(wallet.address, destinationAddress, amount);
 
-    // Encode the function call
-    const iface = new ethers.Interface([
-      "function send(uint32 channelId, uint64 timeoutHeight, uint64 timeoutTimestamp, bytes32 salt, (uint8,uint8,bytes) instruction)"
-    ]);
+      // Encode the function call
+      const iface = new ethers.Interface([
+        "function send(uint32 channelId, uint64 timeoutHeight, uint64 timeoutTimestamp, bytes32 salt, (uint8,uint8,bytes) instruction)"
+      ]);
 
-    const data = iface.encodeFunctionData("send", [
-      channelId,
-      timeoutHeight,
-      timeoutTimestamp,
-      salt,
-      instruction
-    ]);
+      const data = iface.encodeFunctionData("send", [
+        channelId,
+        timeoutHeight,
+        timeoutTimestamp,
+        salt,
+        instruction
+      ]);
 
-    this.logger.info(`Encoded data: ${data}`);
+      this.logger.info(`Encoded data: ${data}`);
 
-    // Execute bridge transaction
-    this.logger.loading("Executing bridge transaction...");
-    const bridgeTx = await this.txManager.sendTransaction(
-      wallet,
-      CONFIG.CONTRACT_ADDRESS,
-      amount,
-      { data }
-    );
+      // Execute bridge transaction
+      this.logger.loading("Executing bridge transaction...");
+      const bridgeTx = await this.txManager.sendTransaction(
+        wallet,
+        CONFIG.CONTRACT_ADDRESS,
+        amount,
+        { data }
+      );
 
-    if (bridgeTx.success) {
-      this.logger.success(`Bridge tx: ${CONFIG.EXPLORER_URL}/tx/${bridgeTx.receipt.hash}`);
-      await this.pollPacketHash(bridgeTx.receipt.hash);
-    } else {
-      throw new Error("Bridge transaction failed");
+      if (bridgeTx.success) {
+        this.logger.success(`Bridge tx: ${CONFIG.EXPLORER_URL}/tx/${bridgeTx.receipt.hash}`);
+        await this.pollPacketHash(bridgeTx.receipt.hash);
+      } else {
+        throw new Error("Bridge transaction failed");
+      }
+    } catch (error) {
+      this.logger.error(`Bridge failed: ${error.message}`);
+      throw error;
     }
-  } catch (error) {
-    this.logger.error(error.message);
-    throw error;
   }
-}
-
-// Helper function to generate dynamic instruction payload
-generateInstructionPayload(senderAddress, destinationAddress, amount) {
-  // Convert amount to hex string (32 bytes)
-  const amountHex = ethers.toBeHex(amount, 32).substring(2);
-
-  // Helper to pad addresses to 20 bytes (40 chars)
-  const padAddress = (addr) => addr.startsWith('0x') ? addr.substring(2).padStart(40, '0') : addr.padStart(40, '0');
-
-  // Helper to pad strings to 32 bytes (64 chars)
-  const padString = (str, length = 32) =>
-    ethers.toUtf8Bytes(str).slice(0, length).toString('hex').padEnd(length * 2, '0');
-
-  // Construct the dynamic payload
-  const payload = [
-    "0x", // Start of payload
-    "0000000000000000000000000000000000000000000000000000000000000020", // Offset
-    "0000000000000000000000000000000000000000000000000000000000000001", // Array length
-    "0000000000000000000000000000000000000000000000000000000000000020", // Element offset
-    "0000000000000000000000000000000000000000000000000000000000000001", // Instruction count
-    "0000000000000000000000000000000000000000000000000000000000000003", // Instruction type (3 = transfer)
-    "0000000000000000000000000000000000000000000000000000000000000060", // Data offset
-    "00000000000000000000000000000000000000000000000000000000000002c0", // Unknown offset
-    "0000000000000000000000000000000000000000000000000000000000000140", // Unknown offset
-    "0000000000000000000000000000000000000000000000000000000000000180", // Unknown offset
-    "00000000000000000000000000000000000000000000000000000000000001c0", // Unknown offset
-    amountHex, // Amount
-    "0000000000000000000000000000000000000000000000000000000000000002", // Unknown
-    "0000000000000000000000000000000000000000000000000000000000000240", // Unknown offset
-    "0000000000000000000000000000000000000000000000000000000000000012", // Unknown
-    "0000000000000000000000000000000000000000000000000000000000000000", // Unknown
-    "0000000000000000000000000000000000000000000000000000000000000028", // Unknown
-    amountHex, // Amount again
-    "0000000000000000000000000000000000000000000000000000000000000014", // Address length
-    padAddress(senderAddress), // Sender address
-    "0000000000000000000000000000000000000000000000000000000000000000", // Padding
-    "0000000000000000000000000000000000000000000000000000000000000014", // Address length
-    padAddress(destinationAddress), // Destination address
-    "0000000000000000000000000000000000000000000000000000000000000000", // Padding
-    "0000000000000000000000000000000000000000000000000000000000000014", // Address length
-    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", // Native token address
-    "0000000000000000000000000000000000000000000000000000000000000000", // Padding
-    "0000000000000000000000000000000000000000000000000000000000000003", // Length "SEI"
-    "5345490000000000000000000000000000000000000000000000000000000000", // "SEI"
-    "0000000000000000000000000000000000000000000000000000000000000003", // Length "Sei"
-    "5365690000000000000000000000000000000000000000000000000000000000", // "Sei"
-    "0000000000000000000000000000000000000000000000000000000000000014", // Address length
-    padAddress(CONFIG.CONTRACT_ADDRESS), // Union Bridge address
-    "0000000000000000000000000000000000000000000000000000000000000000"  // Padding
-  ].join('');
-
-  return [
-    0,    // instructionType (uint8)
-    2,    // instructionVersion (uint8)
-    payload
-  ];
-}
-
-/*
-    if (bridgeTx.success) {
-      this.logger.success(`Bridge tx: ${CONFIG.EXPLORER_URL}/tx/${bridgeTx.receipt.hash}`);
-      await this.pollPacketHash(bridgeTx.receipt.hash);
-    } else {
-      throw new Error("Bridge transaction failed");
-    }
-  } catch (error) {
-    this.logger.error(error.message);
-    throw error;
-  }
-}*/
-
 
   async pollPacketHash(txHash, retries = 30, intervalMs = 5000) {
     for (let i = 0; i < retries; i++) {
@@ -222,7 +187,7 @@ generateInstructionPayload(senderAddress, destinationAddress, amount) {
           return;
         }
       } catch (error) {
-        this.logger.warn(`Retrying packet hash lookup... (${i+1}/${retries})`);
+        this.logger.warn(`Retrying packet hash lookup... (${i + 1}/${retries})`);
       }
       await Utils.delay(intervalMs);
     }
@@ -239,20 +204,23 @@ class App {
   async init() {
     try {
       this.logger.info('Initializing bridge application...');
-      
+
       // Setup provider and wallet (replace with your private key)
       const provider = new ethers.JsonRpcProvider(CONFIG.SEI_RPC);
       const wallet = new ethers.Wallet('0x81f8cb133e86d1ab49dd619581f2d37617235f59f1398daee26627fdeb427fbe', provider); // Replace with your actual private key
-      
+
       // Initialize bridge manager
       const bridgeManager = new BridgeManager(provider, this.logger);
-      
+
       // Set amount to bridge (0.0001 SEI)
       const amount = ethers.parseUnits('0.000001', 18); // 0.0001 SEI
-      
-      // Execute bridge to Corn testnet
-      await bridgeManager.bridgeTokens(wallet, amount, 'corn');
-      
+
+      // Destination address
+      const destinationAddress = '0xe86bed5b0813430df660d17363b89fe9bd8232d8'; // Replace with actual destination address
+
+      // Execute bridge
+      await bridgeManager.bridgeTokens(wallet, amount, destinationAddress);
+
       this.logger.info('Bridge completed successfully!');
     } catch (error) {
       this.logger.error(`Fatal error: ${error.message}`);
