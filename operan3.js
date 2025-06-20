@@ -44,7 +44,7 @@ return ethers.AbiCoder.defaultAbiCoder().encode(
           ethers.zeroPadValue('0x01', 32).slice(2), 
           ethers.zeroPadValue('0x03', 32).slice(2), 
           ethers.zeroPadValue('0x60', 32).slice(2), 
-          ethers.zeroPadValue('0x2c0', 32).slice(2), 
+          ethers.hexZeroPad('0x2c0', 32).slice(2), 
           ethers.zeroPadValue('0x140', 32).slice(2), 
           ethers.zeroPadValue('0x180', 32).slice(2), 
           ethers.zeroPadValue('0x1c0', 32).slice(2), 
