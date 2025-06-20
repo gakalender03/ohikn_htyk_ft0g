@@ -1,19 +1,15 @@
 const { ethers } = require('ethers');
 
-async function logInstructionPayload(wallet, destination) {
-  const provider = new ethers.providers.JsonRpcProvider(wallet.privatekey);
-  
+function logInstructionPayload(destination) {
+  const walletAddress = '0xd828acA0FeA5bA986Ec5d512798dDcFe9E4eA7ED'; // Your wallet address
+
   // Determine destination parameters
   let destinationAddress, channelId;
   if (destination === 'babylon') {
-    destinationAddress = wallet.babylonAddress;
+    destinationAddress = '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238'; // Example Babylon address
     channelId = 7;
-    if (!destinationAddress) {
-      console.log('Missing babylonAddress');
-      return;
-    }
   } else if (destination === 'holesky') {
-    destinationAddress = provider.address;
+    destinationAddress = walletAddress; // Use wallet address for Holesky
     channelId = 8;
   } else {
     console.log('Invalid destination');
@@ -53,9 +49,4 @@ async function logInstructionPayload(wallet, destination) {
 }
 
 // Example usage:
-const wallet = {
-  privatekey: 'YOUR_PRIVATE_KEY',
-  babylonAddress: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238' // Example Babylon address
-};
-
-logInstructionPayload(wallet, 'babylon');
+logInstructionPayload('babylon'); // Test with 'babylon' or 'holesky'
