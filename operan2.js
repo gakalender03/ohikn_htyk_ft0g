@@ -22,29 +22,32 @@ class Utils {
 
   // Helper to generate dynamic instruction payload
   static generateInstructionPayload(senderAddress, destinationAddress, amount) {
-    // Convert amount to hex string (32 bytes)
-    const amountHex = ethers.toBeHex(amount, 32).substring(2);
-
-    // Helper to pad addresses to 20 bytes (40 chars)
-    const padAddress = (addr) => addr.startsWith('0x') ? addr.substring(2).padStart(40, '0') : addr.padStart(40, '0');
-
-    // Construct the dynamic payload
+    // Remove '0x' prefix if present
+    const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
+    
+    // Convert amount to 32-byte hex string
+    const amountHex = ethers.toBeHex(amount, 32);
+    
+    // Encode the payload using ABI coder
     const payload = ethers.AbiCoder.defaultAbiCoder().encode(
-      ['tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'],
+      [
+        'tuple(bytes32,bytes32,bytes32,bytes32,bytes32)',
+        'tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'
+      ],
       [
         [
           ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
-          ethers.zeroPadValue(ethers.toUtf8Bytes(senderAddress), 32),
+          ethers.zeroPadValue('0x' + cleanAddress(senderAddress), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('amount'), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes(amount.toString()), 32),
-          ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32)
         ],
         [
-          ethers.zeroPadValue(ethers.toUtf8Bytes(CONFIG.CONTRACT_ADDRESS), 32),
+          ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32), // Native token
           ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
-          ethers.zeroPadValue(ethers.toUtf8Bytes(destinationAddress), 32),
+          ethers.zeroPadValue('0x' + cleanAddress(destinationAddress), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('denom'), 32),
-          ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32)
         ]
       ]
     );
@@ -55,6 +58,7 @@ class Utils {
       payload
     ];
   }
+
 }
 
 // ========== LOGGER ==========
