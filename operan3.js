@@ -21,7 +21,7 @@ class Utils {
     const addressHex = cleanAddress(walletAddress);
     const destinationHex = cleanAddress(destinationAddress);
     
-    return ethers.AbiCoder.defaultAbiCoder().encode(
+    const payload = ethers.AbiCoder.defaultAbiCoder().encode(
       ['tuple(bytes32,bytes32,bytes32,bytes32,bytes32)', 'tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'],
       [
         [
@@ -61,6 +61,9 @@ class Utils {
         ]
       ]
     );
+
+    // Join the payload into a single string (if it's an array)
+    return Array.isArray(payload) ? payload.join('') : payload;
   }
 }
 
