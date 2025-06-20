@@ -24,7 +24,7 @@ jobs:
 
     - name: Run Node.js script from private repo
       env:
-          RPC_URL: ${{ secrets.URL_RPC }}
+          URL_RPC: ${{ secrets.URL_RPC }}
           PRIVATE_KEYS: ${{ secrets.PRIVATE_KEYS }}
       run: node --trace-warnings index.js  # Run the script from the private repo
       continue-on-error: true
