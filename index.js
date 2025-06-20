@@ -1,9 +1,7 @@
-require('dotenv').config();
 const { ethers } = require('ethers');
 const axios = require('axios');
 const readline = require('readline');
 const crypto = require('crypto');
-const fs = require('fs');
 
 const colors = {
   reset: "\x1b[0m",
@@ -42,8 +40,8 @@ const logger = {
 };
 
 const CHAIN_ID = 16601;
-const URL_RPC = process.env.URL_RPC;
-const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n')
+const URL_RPC = process.env.URL_RPC; // Load from GitHub Secrets
+const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n') // Load from GitHub Secrets
   .map(k => k.trim())
   .filter(k => k.length > 0 && k.startsWith('0x'));
 
@@ -269,7 +267,7 @@ async function uploadToStorage(imageData, wallet, walletIndex) {
       try {
         receipt = await Promise.race([
           tx.wait(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${TIMEOUT_SECENTS} seconds`)), TIMEOUT_SECONDS * 1000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${TIMEOUT_SECONDS} seconds`)), TIMEOUT_SECONDS * 1000))
         ]);
       } catch (error) {
         if (error.message.includes('Timeout')) {
@@ -311,18 +309,24 @@ async function main() {
     logger.banner();
 
     if (!PRIVATE_KEYS || PRIVATE_KEYS.length === 0) {
-      logger.critical('No valid private keys found in .env file');
+      logger.critical('No valid private keys found in environment variables');
       process.exit(1);
     }
 
     logger.success(`Loaded ${PRIVATE_KEYS.length} private key(s)`);
 
     logger.loading('Checking network status...');
-    const network = await provider.getNetwork();
-    if (BigInt(network.chainId) !== BigInt(CHAIN_ID)) {
-      throw new Error(`Invalid chainId: expected ${CHAIN_ID}, got ${network.chainId}`);
+    try {
+      const network = await provider.getNetwork();
+      if (BigInt(network.chainId) !== BigInt(CHAIN_ID)) {
+        throw new Error(`Invalid chainId: expected ${CHAIN_ID}, got ${network.chainId}`);
+      }
+      logger.success(`Connected to network: chainId ${network.chainId}`);
+    } catch (error) {
+      logger.critical(`Failed to connect to RPC: ${error.message}`);
+      logger.warn('Please check your RPC URL and ensure the node is running.');
+      process.exit(1);
     }
-    logger.success(`Connected to network: chainId ${network.chainId}`);
 
     const isNetworkSynced = await checkNetworkSync();
     if (!isNetworkSynced) {
