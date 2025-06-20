@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+const { ethers } = require('ethers');
 
 function generateSendPayload() {
   // Your decoded values from the hex:
