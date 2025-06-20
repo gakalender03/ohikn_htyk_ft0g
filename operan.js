@@ -1,8 +1,8 @@
 const { ethers } = require('ethers');
 
-const sourceAddress = '0x141c7d4b196cb0c7b01d743Fbc6116a902379C7238'; // Example address
+const sourceAddress = '0xC56311F6ec6AB9b4E4C494350580146393a35EA4'; // Example address
 const tokenSymbol = 'USDC';
-const destinationAddress = '0x141c7d4b196cb0c7b01d743Fbc6116a902379C7238'; // Replace with actual destination address
+const destinationAddress = '0xC56311F6ec6AB9b4E4C494350580146393a35EA4'; // Replace with actual destination address
 
 const encodedData = ethers.solidityPacked(
   ['address', 'string', 'address'],
