@@ -49,7 +49,7 @@ class Utils {
 
   static generateInstructionPayload(senderAddress, destinationAddress) {
   const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
-  
+
   // Encode the source part
   const sourcePart = ethers.AbiCoder.defaultAbiCoder().encode(
     ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
