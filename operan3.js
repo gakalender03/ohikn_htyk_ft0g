@@ -2,7 +2,7 @@ const { ethers } = require('ethers');
 
 // ========== CONFIGURATION ==========
 const CONFIG = {
-  BRIDGE_AMOUNT: ethers.parseUnits('0.000001', 18) // 0.000001 SEI
+  BRIDGE_AMOUNT: ethers.parseUnits('1', 18) // 1 SEI
 };
 
 // ========== UTILITIES ==========
@@ -31,11 +31,6 @@ class Utils {
       ]
     );
   }
-
-  static generateInstructionPayload(walletAddress, destinationAddress) {
-    const operand = this.generateSeiPayload(walletAddress, destinationAddress);
-    return [0, 2, operand]; // instructionType, instructionVersion, operand
-  }
 }
 
 // ========== MAIN APPLICATION ==========
@@ -44,9 +39,9 @@ class Utils {
     const walletAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B';
     const destinationAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B'; // Replace with actual destination
     
-    const instruction = Utils.generateInstructionPayload(walletAddress, destinationAddress);
+    const payload = Utils.generateSeiPayload(walletAddress, destinationAddress);
     
-    console.log('Generated Instruction:', instruction);
+    console.log('Generated Payload:', payload);
     
   } catch (error) {
     console.error(`Fatal error: ${error.message}`);
