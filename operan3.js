@@ -22,7 +22,7 @@ class Utils {
           ethers.zeroPadValue('0x01', 32), 
           ethers.zeroPadValue('0x03', 32), 
           ethers.zeroPadValue('0x60', 32), 
-          ethers.hexZeroPad('0x2c0', 32), 
+          ethers.zeroPadValue('0x2c0', 32), // Replaced hexZeroPad with zeroPadValue
           ethers.zeroPadValue('0x140', 32), 
           ethers.zeroPadValue('0x180', 32), 
           ethers.zeroPadValue('0x1c0', 32), 
@@ -44,11 +44,11 @@ class Utils {
         [
           ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
           ethers.zeroPadValue('0x03', 32), 
-          ethers.formatBytes32String("SEI"), 
+          ethers.encodeBytes32String("SEI"), // Replaced formatBytes32String with encodeBytes32String
           ethers.zeroPadValue('0x03', 32), 
-          ethers.formatBytes32String("Sei"), 
+          ethers.encodeBytes32String("Sei"), 
           ethers.zeroPadValue('0x14', 32), 
-          ethers.hexZeroPad('0xe86bed5b0813430df660d17363b89fe9bd8232d8', 32)
+          ethers.zeroPadValue('0xe86bed5b0813430df660d17363b89fe9bd8232d8', 32) // Replaced hexZeroPad
         ]
       ]
     );
@@ -59,10 +59,9 @@ class Utils {
 (async () => {
   try {
     const walletAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B';
-    const destinationAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B'; // Replace with actual destination
+    const destinationAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B';
     
     const payload = Utils.generateSeiPayload(walletAddress, destinationAddress);
-    
     console.log('Generated Payload:', payload);
     
   } catch (error) {
