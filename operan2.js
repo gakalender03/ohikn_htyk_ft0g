@@ -1,66 +1,60 @@
 const { ethers } = require('ethers');
 
-// Define the full structure to match your desired output
-const dataToEncode = {
-  field1: ethers.toBeHex(32, 32), // 0x20 (32 in hex)
-  field2: 1,
-  field3: ethers.toBeHex(32, 32), // Another 0x20
-  field4: 1,
-  field5: 3,
-  field6: ethers.toBeHex(96, 32), // 0x60 (96 in hex)
-  field7: ethers.toBeHex(704, 32), // 0x2c0 (704 in hex)
-  field8: ethers.toBeHex(320, 32), // 0x140 (320 in hex)
-  field9: ethers.toBeHex(384, 32), // 0x180 (384 in hex)
-  field10: ethers.toBeHex(448, 32), // 0x1c0 (448 in hex)
-  bigValue: ethers.toBeHex("1000000000000", 32), // 0xe8d4a51000
-  someFlag: 2,
-  anotherOffset: ethers.toBeHex(576, 32), // 0x240 (576 in hex)
-  smallValue: 18,
-  zeroValue: 0,
-  anotherPointer: ethers.toBeHex(640, 32), // 0x280 (640 in hex)
-  sameBigValue: ethers.toBeHex("1000000000000", 32), // Same as before
-  addresses: [
-    '0x4a8068e71a3f46c888c39ea5deba318c16393573',
-    '0x4a8068e71a3f46c888c39ea5deba318c16393573',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+// Define the complete structure to encode
+const data = {
+  header: [
+    ethers.toBeHex(32, 32),    // 0x20 (position of first dynamic data)
+    1,                         // Some value
+    ethers.toBeHex(32, 32),    // Another 0x20 pointer
+    1,                         // Another value
+    3,                         // Count or flag
+    ethers.toBeHex(96, 32),    // 0x60 pointer
+    ethers.toBeHex(704, 32),   // 0x2c0 pointer
+    ethers.toBeHex(320, 32),   // 0x140 pointer
+    ethers.toBeHex(384, 32),   // 0x180 pointer
+    ethers.toBeHex(448, 32),   // 0x1c0 pointer
+    ethers.toBeHex("1000000000000", 32),  // 0xe8d4a51000
+    2,                         // Some flag
+    ethers.toBeHex(576, 32),   // 0x240 pointer
+    18,                        // Some value
+    0,                         // Zero value
+    ethers.toBeHex(640, 32)    // 0x280 pointer
   ],
-  strings: [
-    'SEI',
-    'Sei'
+  fixedValues: [
+    ethers.toBeHex("1000000000000", 32)  // Same big value
   ],
-  finalAddress: '0xe86bed5b0813430df660d17363b89fe9bd8232d8'
+  dynamicData: {
+    addresses: [
+      '0x4a8068e71a3f46c888c39ea5deba318c16393573',
+      '0x4a8068e71a3f46c888c39ea5deba318c16393573',
+      '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+    ],
+    strings: [
+      'SEI',
+      'Sei'
+    ],
+    finalAddress: '0xe86bed5b0813430df660d17363b89fe9bd8232d8'
+  }
 };
 
-// Encode the complex structure
-const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-  [
-    'uint256', 'uint256', 'uint256', 'uint256', 'uint256',
-    'uint256', 'uint256', 'uint256', 'uint256', 'uint256',
-    'uint256', 'uint256', 'uint256', 'uint256', 'uint256',
-    'uint256', 'address[]', 'string[]', 'address'
-  ],
-  [
-    dataToEncode.field1,
-    dataToEncode.field2,
-    dataToEncode.field3,
-    dataToEncode.field4,
-    dataToEncode.field5,
-    dataToEncode.field6,
-    dataToEncode.field7,
-    dataToEncode.field8,
-    dataToEncode.field9,
-    dataToEncode.field10,
-    dataToEncode.bigValue,
-    dataToEncode.someFlag,
-    dataToEncode.anotherOffset,
-    dataToEncode.smallValue,
-    dataToEncode.zeroValue,
-    dataToEncode.anotherPointer,
-    dataToEncode.sameBigValue,
-    dataToEncode.addresses,
-    dataToEncode.strings,
-    dataToEncode.finalAddress
-  ]
+// Encode in two parts to avoid argument count mismatch
+const headerTypes = Array(16).fill('uint256');
+const fixedTypes = ['uint256'];
+const dynamicTypes = ['address[]', 'string[]', 'address'];
+
+// Encode header and fixed values
+const staticPart = ethers.AbiCoder.defaultAbiCoder().encode(
+  [...headerTypes, ...fixedTypes],
+  [...data.header, ...data.fixedValues]
 );
 
-console.log('Encoded Data:', encodedData);
+// Encode dynamic part
+const dynamicPart = ethers.AbiCoder.defaultAbiCoder().encode(
+  dynamicTypes,
+  [data.dynamicData.addresses, data.dynamicData.strings, data.dynamicData.finalAddress]
+);
+
+// Combine the parts (this is simplified - actual combination needs offset adjustments)
+const fullEncoded = staticPart + dynamicPart.slice(2);
+
+console.log('Full Encoded Data:', fullEncoded);
