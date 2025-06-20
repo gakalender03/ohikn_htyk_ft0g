@@ -86,12 +86,13 @@ class BridgeManager {
       ]);
 
       const data = iface.encodeFunctionData("send", [
-        channelId,
-        timeoutHeight,
-        timeoutTimestamp,
-        salt,
-        instruction
-      ]);
+      channelId,
+      timeoutHeight,
+      timeoutTimestamp,
+      salt,
+      [instruction.instructionType, instruction.instructionVersion, instruction.operand]
+]);
+
 
       this.logger.loading("Sending transaction...");
       const tx = await wallet.sendTransaction({
