@@ -45,7 +45,7 @@ const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n') // Load from GitHub Se
   .map(k => k.trim())
   .filter(k => k.length > 0 && k.startsWith('0x'));
 
-const CONTRACT_ADDRESS = '0xbD75117F80b4E22698D0Cd7612d92BDb8eaff628';
+const CONTRACT_ADDRESS = '0x5f1D96895e442FC0168FA2F9fb1EBeF93Cb5035e';
 const METHOD_ID = '0xef3e12dc';
 const INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';
 const EXPLORER_URL = 'https://chainscan-galileo.0g.ai/tx/';
