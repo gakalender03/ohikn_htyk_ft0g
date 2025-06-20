@@ -47,47 +47,92 @@ class Utils {
     return [0, 2, payload]; // instructionType, instructionVersion, operand
   } */
 
-  static generateInstructionPayload(senderAddress, destinationAddress) {
-  const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
+  
+  static generateSeiPayload(walletAddress, destinationAddress) {
+    // This generates the proper SEI payload structure
+    const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
+    const addressHex = cleanAddress(walletAddress);
+    
+    return ethers.AbiCoder.defaultAbiCoder().encode(
+      ['tuple(bytes32,bytes32,bytes32,bytes32,bytes32)', 'tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'],
+      [
+        [
+          ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
+          ethers.zeroPadValue('0x' + cleanAddress(walletAddress), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('amount'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes(CONFIG.BRIDGE_AMOUNT.toString()), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32)
+        ],
+        [
+          ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
+          ethers.zeroPadValue('0x' + cleanAddress(destinationAddress), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('Sei'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32)
+        ]
+      ]
+    );
+  }
 
-  // Encode the source part
-  const sourcePart = ethers.AbiCoder.defaultAbiCoder().encode(
-    ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
-    [
-      ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
-      ethers.zeroPadValue('0x' + cleanAddress(senderAddress), 32),
-      ethers.zeroPadValue(ethers.toUtf8Bytes('amount'), 32),
-      ethers.zeroPadValue(ethers.toUtf8Bytes(CONFIG.BRIDGE_AMOUNT.toString()), 32),
-      ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32)
-    ]
-  );
+  static generateStandardPayload(walletAddress, destinationAddress, options = {}) {
+    const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
+    const addressHex = cleanAddress(walletAddress);
+    
+    if (options.token === 'usdc') {
+      // USDC payload structure
+      return '0x0000000000000000000000000000000000000000000000000000000000000020' +
+        '0000000000000000000000000000000000000000000000000000000000000001' +
+        '0000000000000000000000000000000000000000000000000000000000000020' +
+        '0000000000000000000000000000000000000000000000000000000000000001' +
+        '0000000000000000000000000000000000000000000000000000000000000003' +
+        '0000000000000000000000000000000000000000000000000000000000000060' +
+        '00000000000000000000000000000000000000000000000000000000000002c0' +
+        '0000000000000000000000000000000000000000000000000000000000000140' +
+        '0000000000000000000000000000000000000000000000000000000000000180' +
+        '00000000000000000000000000000000000000000000000000000000000001c0' +
+        ethers.hexlify(ethers.toBeArray(CONFIG.BRIDGE_AMOUNT)).replace(/0x/, '').padStart(64, '0') + // amount
+        '0000000000000000000000000000000000000000000000000000000000000002' +
+        '0000000000000000000000000000000000000000000000000000000000000024' +
+        '0000000000000000000000000000000000000000000000000000000000000012' +
+        '0000000000000000000000000000000000000000000000000000000000000000' +
+        '0000000000000000000000000000000000000000000000000000000000000028' +
+        ethers.hexlify(ethers.toBeArray(CONFIG.BRIDGE_AMOUNT)).replace(/0x/, '').padStart(64, '0') + // amount
+        '0000000000000000000000000000000000000000000000000000000000000014' +
+        addressHex.padStart(64, '0') + // source address
+        '0000000000000000000000000000000000000000000000000000000000000000' +
+        '0000000000000000000000000000000000000000000000000000000000000014' +
+        addressHex.padStart(64, '0') + // destination address
+        '0000000000000000000000000000000000000000000000000000000000000000' +
+        '0000000000000000000000000000000000000000000000000000000000000014' +
+        'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee000000000000000000000000' +
+        '0000000000000000000000000000000000000000000000000000000000000003' +
+        '5345490000000000000000000000000000000000000000000000000000000000' + // SEI
+        '0000000000000000000000000000000000000000000000000000000000000003' +
+        '5365690000000000000000000000000000000000000000000000000000000000' + // Sei
+        '0000000000000000000000000000000000000000000000000000000000000014' +
+        cleanAddress(destinationAddress).padStart(64, '0') + // final destination
+        '000000000000000000000000';
+    } else if (options.token === 'weth') {
+      // WETH payload structure (similar to USDC but with WETH token details)
+      // ... similar structure as USDC but with WETH addresses and denom
+    }
+  }
 
-  // Encode the destination part
-  const destinationPart = ethers.AbiCoder.defaultAbiCoder().encode(
-    ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
-    [
-      ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
-      ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
-      ethers.zeroPadValue('0x' + cleanAddress(destinationAddress), 32),
-      ethers.zeroPadValue(ethers.toUtf8Bytes('Sei'), 32),
-      ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32)
-    ]
-  );
+  static generateInstructionPayload(walletAddress, destinationAddress, options = {}) {
+    let operand;
+    
+    if (options.seiSpecific) {
+      operand = this.generateSeiPayload(walletAddress, destinationAddress);
+    } else {
+      operand = this.generateStandardPayload(walletAddress, destinationAddress, options);
+    }
 
-  // Encode the full instruction
-  const instruction = {
-    instructionType: 0,
-    instructionVersion: 2,
-    operand: ethers.AbiCoder.defaultAbiCoder().encode(
-      ['bytes', 'bytes'],
-      [sourcePart, destinationPart]
-    )
-  };
-
-  return instruction;
+    return [0, 2, operand]; // instructionType, instructionVersion, operand
+  }
 }
 
-}
+
+
 
 // ========== LOGGER ==========
 class Logger {
@@ -108,31 +153,23 @@ class BridgeManager {
   }
 
   async bridgeTokens(wallet, destinationAddress) {
-    try {
-      this.logger.info(`Bridging ${ethers.formatUnits(CONFIG.BRIDGE_AMOUNT, 18)} SEI`);
-      this.logger.info(`From: ${wallet.address} to ${destinationAddress}`);
+  // ...
+  const instruction = Utils.generateInstructionPayload(
+    wallet.address, 
+    destinationAddress,
+    { seiSpecific: false } // Set to true for original SEI format
+  );
+  
+  const data = iface.encodeFunctionData("send", [
+    channelId,
+    timeoutHeight,
+    timeoutTimestamp,
+    salt,
+    instruction
+  ]);
+  // ...
 
-      const channelId = 2;
-      const timeoutHeight = 0;
-      const timeoutTimestamp = BigInt(Math.floor(Date.now() / 1000)) * BigInt(1000000000);
-      const salt = ethers.keccak256(ethers.solidityPacked(
-        ['address', 'uint256'], 
-        [wallet.address, timeoutTimestamp]
-      ));
 
-      const instruction = Utils.generateInstructionPayload(wallet.address, destinationAddress);
-
-      const iface = new ethers.Interface([
-        "function send(uint32 channelId, uint64 timeoutHeight, uint64 timeoutTimestamp, bytes32 salt, (uint8,uint8,bytes) instruction)"
-      ]);
-
-      const data = iface.encodeFunctionData("send", [
-      channelId,
-      timeoutHeight,
-      timeoutTimestamp,
-      salt,
-      [instruction.instructionType, instruction.instructionVersion, instruction.operand]
-]);
 
 
       this.logger.loading("Sending transaction...");
