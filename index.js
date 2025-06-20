@@ -221,8 +221,10 @@ async function uploadToStorage(imageData, wallet, walletIndex) {
       ]);
 
      // const value = parseEther('0.00033839233398436224');
-      const value = parseEther('0.00034');
-      const gasPrice = parseUnits('1.029599997', 'gwei');
+      const value = parseEther('0.000003');
+   //   const gasPrice = parseUnits('1.029599997', 'gwei');
+      const gasPrice = parseUnits('0.004519168', 'gwei');
+      
 
       logger.loading('Estimating gas...');
       let gasLimit;
