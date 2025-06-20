@@ -38,7 +38,7 @@ class Utils {
           ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
           ethers.zeroPadValue('0x' + cleanAddress(destinationAddress), 32),
-          ethers.zeroPadValue(ethers.toUtf8Bytes('denom'), 32),
+          ethers.zeroPadValue(ethers.toUtf8Bytes('Sei'), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32)
         ]
       ]
