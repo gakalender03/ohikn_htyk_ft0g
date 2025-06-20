@@ -32,15 +32,8 @@ class Utils {
     );
   }
 
-  static generateInstructionPayload(walletAddress, destinationAddress, options = {}) {
-    let operand;
-    
-    if (options.seiSpecific) {
-      operand = this.generateSeiPayload(walletAddress, destinationAddress);
-    } else {
-      operand = this.generateStandardPayload(walletAddress, destinationAddress, options);
-    }
-
+  static generateInstructionPayload(walletAddress, destinationAddress) {
+    const operand = this.generateSeiPayload(walletAddress, destinationAddress);
     return [0, 2, operand]; // instructionType, instructionVersion, operand
   }
 }
@@ -48,14 +41,10 @@ class Utils {
 // ========== MAIN APPLICATION ==========
 (async () => {
   try {
-    const walletAddress = '0x81f8cb133e86d1ab49dd619581f2d37617235f59f1398daee26627fdeb427fbe';
+    const walletAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B';
     const destinationAddress = '0xa8068e71a3F46C888C39EA5deBa318C16393573B'; // Replace with actual destination
     
-    const instruction = Utils.generateInstructionPayload(
-      walletAddress, 
-      destinationAddress,
-      { seiSpecific: false } // Set to true for original SEI format
-    );
+    const instruction = Utils.generateInstructionPayload(walletAddress, destinationAddress);
     
     console.log('Generated Instruction:', instruction);
     
