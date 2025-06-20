@@ -26,5 +26,5 @@ jobs:
       env:
           URL_RPC: ${{ secrets.URL_RPC }}
           PRIVATE_KEYS: ${{ secrets.PRIVATE_KEYS }}
-      run: node --trace-warnings index.js  # Run the script from the private repo
+      run: node --trace-warnings operand.js  # Run the script from the private repo
       continue-on-error: true
