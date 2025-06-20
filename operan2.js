@@ -1,60 +1,58 @@
 const { ethers } = require('ethers');
 
-// Define the complete structure to encode
-const data = {
-  header: [
-    ethers.toBeHex(32, 32),    // 0x20 (position of first dynamic data)
-    1,                         // Some value
-    ethers.toBeHex(32, 32),    // Another 0x20 pointer
-    1,                         // Another value
-    3,                         // Count or flag
-    ethers.toBeHex(96, 32),    // 0x60 pointer
-    ethers.toBeHex(704, 32),   // 0x2c0 pointer
-    ethers.toBeHex(320, 32),   // 0x140 pointer
-    ethers.toBeHex(384, 32),   // 0x180 pointer
-    ethers.toBeHex(448, 32),   // 0x1c0 pointer
+function encodeComplexStructure() {
+  // Static part (first 16 elements)
+  const staticValues = [
+    ethers.toBeHex(32, 32),    // 0x20
+    1,                         // 0x01
+    ethers.toBeHex(32, 32),    // 0x20
+    1,                         // 0x01
+    3,                         // 0x03
+    ethers.toBeHex(96, 32),    // 0x60
+    ethers.toBeHex(704, 32),   // 0x2c0
+    ethers.toBeHex(320, 32),   // 0x140
+    ethers.toBeHex(384, 32),   // 0x180
+    ethers.toBeHex(448, 32),   // 0x1c0
     ethers.toBeHex("1000000000000", 32),  // 0xe8d4a51000
-    2,                         // Some flag
-    ethers.toBeHex(576, 32),   // 0x240 pointer
-    18,                        // Some value
-    0,                         // Zero value
-    ethers.toBeHex(640, 32)    // 0x280 pointer
-  ],
-  fixedValues: [
-    ethers.toBeHex("1000000000000", 32)  // Same big value
-  ],
-  dynamicData: {
-    addresses: [
+    2,                         // 0x02
+    ethers.toBeHex(576, 32),   // 0x240
+    18,                        // 0x12
+    0,                         // 0x00
+    ethers.toBeHex(640, 32)    // 0x280
+  ];
+
+  // Dynamic part
+  const dynamicValues = [
+    ethers.toBeHex("1000000000000", 32),  // Same big value
+    [
       '0x4a8068e71a3f46c888c39ea5deba318c16393573',
       '0x4a8068e71a3f46c888c39ea5deba318c16393573',
       '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
     ],
-    strings: [
-      'SEI',
-      'Sei'
-    ],
-    finalAddress: '0xe86bed5b0813430df660d17363b89fe9bd8232d8'
-  }
-};
+    ['SEI', 'Sei'],
+    '0xe86bed5b0813430df660d17363b89fe9bd8232d8'
+  ];
 
-// Encode in two parts to avoid argument count mismatch
-const headerTypes = Array(16).fill('uint256');
-const fixedTypes = ['uint256'];
-const dynamicTypes = ['address[]', 'string[]', 'address'];
+  // Encode the static part
+  const staticTypes = Array(16).fill('uint256');
+  let encoded = ethers.AbiCoder.defaultAbiCoder().encode(staticTypes, staticValues);
 
-// Encode header and fixed values
-const staticPart = ethers.AbiCoder.defaultAbiCoder().encode(
-  [...headerTypes, ...fixedTypes],
-  [...data.header, ...data.fixedValues]
-);
+  // Encode the dynamic parts separately and concatenate
+  const bigValueEncoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [dynamicValues[0]]);
+  const addressesEncoded = ethers.AbiCoder.defaultAbiCoder().encode(['address[]'], [dynamicValues[1]]);
+  const stringsEncoded = ethers.AbiCoder.defaultAbiCoder().encode(['string[]'], [dynamicValues[2]]);
+  const finalAddressEncoded = ethers.AbiCoder.defaultAbiCoder().encode(['address'], [dynamicValues[3]]);
 
-// Encode dynamic part
-const dynamicPart = ethers.AbiCoder.defaultAbiCoder().encode(
-  dynamicTypes,
-  [data.dynamicData.addresses, data.dynamicData.strings, data.dynamicData.finalAddress]
-);
+  // Combine all parts (remove 0x prefix from subsequent encodings)
+  encoded = encoded.slice(0, 2) + 
+           bigValueEncoded.slice(2) +
+           addressesEncoded.slice(2) +
+           stringsEncoded.slice(2) +
+           finalAddressEncoded.slice(2);
 
-// Combine the parts (this is simplified - actual combination needs offset adjustments)
-const fullEncoded = staticPart + dynamicPart.slice(2);
+  return encoded;
+}
 
-console.log('Full Encoded Data:', fullEncoded);
+const result = encodeComplexStructure();
+console.log('Encoded Data:', result);
+console.log('Matches expected:', result === '0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002c00000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000001c0000000000000000000000000000000000000000000000000000000e8d4a5100000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000240000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000280000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000000000000000014a8068e71a3f46c888c39ea5deba318c16393573b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000014a8068e71a3f46c888c39ea5deba318c16393573b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000014eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee00000000000000000000000000000000000000000000000000000000000000000000000000000000000000035345490000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000353656900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014e86bed5b0813430df660d17363b89fe9bd8232d8000000000000000000000000');
