@@ -5,6 +5,15 @@ const CONFIG = {
   BRIDGE_AMOUNT: ethers.parseUnits('1', 18) // 1 SEI
 };
 
+// Helper function to ensure proper hex formatting
+function toValidHex(input) {
+  // Remove 0x prefix if present
+  let hex = input.startsWith('0x') ? input.slice(2) : input;
+  // Ensure even number of characters
+  if (hex.length % 2 !== 0) hex = '0' + hex;
+  return '0x' + hex;
+}
+
 // ========== UTILITIES ==========
 class Utils {
   static generateSeiPayload(walletAddress, destinationAddress) {
@@ -16,39 +25,39 @@ class Utils {
       ['tuple(bytes32,bytes32,bytes32,bytes32,bytes32)', 'tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'],
       [
         [
-          ethers.zeroPadValue('0x20', 32), 
-          ethers.zeroPadValue('0x01', 32), 
-          ethers.zeroPadValue('0x20', 32), 
-          ethers.zeroPadValue('0x01', 32), 
-          ethers.zeroPadValue('0x03', 32), 
-          ethers.zeroPadValue('0x60', 32), 
-          ethers.zeroPadValue('0x02c0', 32), // Replaced hexZeroPad with zeroPadValue
-          ethers.zeroPadValue('0x140', 32), 
-          ethers.zeroPadValue('0x180', 32), 
-          ethers.zeroPadValue('0x1c0', 32), 
-          ethers.zeroPadValue('0xe8d4a51000', 32), 
-          ethers.zeroPadValue('0x200', 32), 
-          ethers.zeroPadValue('0x240', 32), 
-          ethers.zeroPadValue('0x12', 32), 
-          ethers.zeroPadValue('0x0', 32), 
-          ethers.zeroPadValue('0x280', 32), 
-          ethers.zeroPadValue('0xe8d4a51000', 32), 
-          ethers.zeroPadValue('0x14', 32), 
+          ethers.zeroPadValue(toValidHex('20'), 32), 
+          ethers.zeroPadValue(toValidHex('01'), 32), 
+          ethers.zeroPadValue(toValidHex('20'), 32), 
+          ethers.zeroPadValue(toValidHex('01'), 32), 
+          ethers.zeroPadValue(toValidHex('03'), 32), 
+          ethers.zeroPadValue(toValidHex('60'), 32), 
+          ethers.zeroPadValue(toValidHex('2c0'), 32),
+          ethers.zeroPadValue(toValidHex('140'), 32), 
+          ethers.zeroPadValue(toValidHex('180'), 32), 
+          ethers.zeroPadValue(toValidHex('1c0'), 32), 
+          ethers.zeroPadValue(toValidHex('e8d4a51000'), 32), 
+          ethers.zeroPadValue(toValidHex('200'), 32), 
+          ethers.zeroPadValue(toValidHex('240'), 32), 
+          ethers.zeroPadValue(toValidHex('12'), 32), 
+          ethers.zeroPadValue(toValidHex('00'), 32), 
+          ethers.zeroPadValue(toValidHex('280'), 32), 
+          ethers.zeroPadValue(toValidHex('e8d4a51000'), 32), 
+          ethers.zeroPadValue(toValidHex('14'), 32), 
           ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
-          ethers.zeroPadValue('0x' + addressHex, 32),
-          ethers.zeroPadValue('0x14', 32), 
+          ethers.zeroPadValue(toValidHex(addressHex), 32),
+          ethers.zeroPadValue(toValidHex('14'), 32), 
           ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
-          ethers.zeroPadValue('0x' + addressHex, 32), 
-          ethers.zeroPadValue('0x14', 32)
+          ethers.zeroPadValue(toValidHex(addressHex), 32), 
+          ethers.zeroPadValue(toValidHex('14'), 32)
         ],
         [
-          ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
-          ethers.zeroPadValue('0x03', 32), 
-          ethers.encodeBytes32String("SEI"), // Replaced formatBytes32String with encodeBytes32String
-          ethers.zeroPadValue('0x03', 32), 
+          ethers.zeroPadValue(toValidHex('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'), 32),
+          ethers.zeroPadValue(toValidHex('03'), 32), 
+          ethers.encodeBytes32String("SEI"), 
+          ethers.zeroPadValue(toValidHex('03'), 32), 
           ethers.encodeBytes32String("Sei"), 
-          ethers.zeroPadValue('0x14', 32), 
-          ethers.zeroPadValue('0xe86bed5b0813430df660d17363b89fe9bd8232d8', 32) // Replaced hexZeroPad
+          ethers.zeroPadValue(toValidHex('14'), 32), 
+          ethers.zeroPadValue(toValidHex('e86bed5b0813430df660d17363b89fe9bd8232d8'), 32)
         ]
       ]
     );
