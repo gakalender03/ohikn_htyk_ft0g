@@ -18,7 +18,7 @@ class Utils {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  static generateInstructionPayload(senderAddress, destinationAddress) {
+/*  static generateInstructionPayload(senderAddress, destinationAddress) {
     const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
     
     const payload = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -45,7 +45,48 @@ class Utils {
     );
 
     return [0, 2, payload]; // instructionType, instructionVersion, operand
-  }
+  } */
+
+  static generateInstructionPayload(senderAddress, destinationAddress) {
+  const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
+  
+  // Encode the source part
+  const sourcePart = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
+    [
+      ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
+      ethers.zeroPadValue('0x' + cleanAddress(senderAddress), 32),
+      ethers.zeroPadValue(ethers.toUtf8Bytes('amount'), 32),
+      ethers.zeroPadValue(ethers.toUtf8Bytes(CONFIG.BRIDGE_AMOUNT.toString()), 32),
+      ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32)
+    ]
+  );
+
+  // Encode the destination part
+  const destinationPart = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
+    [
+      ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
+      ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
+      ethers.zeroPadValue('0x' + cleanAddress(destinationAddress), 32),
+      ethers.zeroPadValue(ethers.toUtf8Bytes('Sei'), 32),
+      ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32)
+    ]
+  );
+
+  // Encode the full instruction
+  const instruction = {
+    instructionType: 0,
+    instructionVersion: 2,
+    operand: ethers.AbiCoder.defaultAbiCoder().encode(
+      ['bytes', 'bytes'],
+      [sourcePart, destinationPart]
+    )
+  };
+
+  return instruction;
+}
+
 }
 
 // ========== LOGGER ==========
