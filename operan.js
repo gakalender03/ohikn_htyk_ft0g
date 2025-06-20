@@ -50,6 +50,7 @@ const instruction = {
   operand
 };
 
+console.log(instruction) ;
 // Encode the full function call
 const ucs03Interface = new ethers.Interface(UCS03_ABI);
 const encodedSendCall = ucs03Interface.encodeFunctionData('send', [
