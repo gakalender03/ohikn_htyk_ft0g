@@ -143,8 +143,10 @@ class BridgeManager {
         gasLimit: CONFIG.GAS_LIMIT,
         gasPrice: CONFIG.GAS_PRICE
       });
-
+      
       this.logger.success(`Transaction sent: ${CONFIG.EXPLORER_URL}/tx/${tx.hash}`);
+
+     console.log(instruction) ;
       await this.pollPacketHash(tx.hash);
       
     } catch (error) {
