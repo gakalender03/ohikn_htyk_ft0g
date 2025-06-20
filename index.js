@@ -45,7 +45,7 @@ const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n') // Load from GitHub Se
   .map(k => k.trim())
   .filter(k => k.length > 0 && k.startsWith('0x'));
 
-const CONTRACT_ADDRESS = '0x5f1d96895e442fc0168fa2f9fb1ebef93cb5035e';
+const CONTRACT_ADDRESS = '0xbD75117F80b4E22698D0Cd7612d92BDb8eaff628';
 const METHOD_ID = '0xef3e12dc';
 const INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';
 const EXPLORER_URL = 'https://chainscan-galileo.0g.ai/tx/';
@@ -340,69 +340,60 @@ async function main() {
     });
     console.log();
 
-    rl.question('How many files to upload per wallet? ', async (count) => {
-      count = parseInt(count);
-      if (isNaN(count) || count <= 0) {
-        logger.error('Invalid number. Please enter a number greater than 0.');
-        rl.close();
-        process.exit(1);
-        return;
-      }
+    // Automatically set the number of uploads per wallet to 1
+    const count = 1;
 
-      const totalUploads = count * PRIVATE_KEYS.length;
-      logger.info(`Starting ${totalUploads} uploads (${count} per wallet)`);
+    const totalUploads = count * PRIVATE_KEYS.length;
+    logger.info(`Starting ${totalUploads} uploads (${count} per wallet)`);
 
-      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-      let successful = 0;
-      let failed = 0;
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    let successful = 0;
+    let failed = 0;
 
-      for (let walletIndex = 0; walletIndex < PRIVATE_KEYS.length; walletIndex++) {
-        currentKeyIndex = walletIndex;
-        const wallet = initializeWallet();
-        logger.section(`Processing Wallet #${walletIndex + 1} [${wallet.address}]`);
+    for (let walletIndex = 0; walletIndex < PRIVATE_KEYS.length; walletIndex++) {
+      currentKeyIndex = walletIndex;
+      const wallet = initializeWallet();
+      logger.section(`Processing Wallet #${walletIndex + 1} [${wallet.address}]`);
 
-        for (let i = 1; i <= count; i++) {
-          const uploadNumber = (walletIndex * count) + i;
-          logger.process(`Upload ${uploadNumber}/${totalUploads} (Wallet #${walletIndex + 1}, File #${i})`);
+      for (let i = 1; i <= count; i++) {
+        const uploadNumber = (walletIndex * count) + i;
+        logger.process(`Upload ${uploadNumber}/${totalUploads} (Wallet #${walletIndex + 1}, File #${i})`);
 
-          try {
-            const imageBuffer = await fetchRandomImage();
-            const imageData = await prepareImageData(imageBuffer);
-            await uploadToStorage(imageData, wallet, walletIndex);
-            successful++;
-            logger.success(`Upload ${uploadNumber} completed`);
+        try {
+          const imageBuffer = await fetchRandomImage();
+          const imageData = await prepareImageData(imageBuffer);
+          await uploadToStorage(imageData, wallet, walletIndex);
+          successful++;
+          logger.success(`Upload ${uploadNumber} completed`);
 
-            if (uploadNumber < totalUploads) {
-              logger.loading('Waiting for next upload...');
-              await delay(3000);
-            }
-          } catch (error) {
-            failed++;
-            logger.error(`Upload ${uploadNumber} failed: ${error.message}`);
-            await delay(5000);
+          if (uploadNumber < totalUploads) {
+            logger.loading('Waiting for next upload...');
+            await delay(3000);
           }
-        }
-
-        if (walletIndex < PRIVATE_KEYS.length - 1) {
-          logger.loading('Switching to next wallet...');
-          await delay(10000);
+        } catch (error) {
+          failed++;
+          logger.error(`Upload ${uploadNumber} failed: ${error.message}`);
+          await delay(5000);
         }
       }
 
-      logger.section('Upload Summary');
-      logger.summary(`Total wallets: ${PRIVATE_KEYS.length}`);
-      logger.summary(`Uploads per wallet: ${count}`);
-      logger.summary(`Total attempted: ${totalUploads}`);
-      if (successful > 0) logger.success(`Successful: ${successful}`);
-      if (failed > 0) logger.error(`Failed: ${failed}`);
-      logger.success('All operations completed');
+      if (walletIndex < PRIVATE_KEYS.length - 1) {
+        logger.loading('Switching to next wallet...');
+        await delay(10000);
+      }
+    }
 
-      rl.close();
-      process.exit(0);
-    });
+    logger.section('Upload Summary');
+    logger.summary(`Total wallets: ${PRIVATE_KEYS.length}`);
+    logger.summary(`Uploads per wallet: ${count}`);
+    logger.summary(`Total attempted: ${totalUploads}`);
+    if (successful > 0) logger.success(`Successful: ${successful}`);
+    if (failed > 0) logger.error(`Failed: ${failed}`);
+    logger.success('All operations completed');
+
+    process.exit(0);
   } catch (error) {
     logger.critical(`Main process error: ${error.message}`);
-    rl.close();
     process.exit(1);
   }
 }
