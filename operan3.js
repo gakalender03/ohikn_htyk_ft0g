@@ -10,13 +10,14 @@ class Utils {
   static generateSeiPayload(walletAddress, destinationAddress) {
     const cleanAddress = (addr) => addr.startsWith('0x') ? addr.substring(2) : addr;
     const addressHex = cleanAddress(walletAddress);
+    const destinationHex = cleanAddress(destinationAddress);
     
     return ethers.AbiCoder.defaultAbiCoder().encode(
       ['tuple(bytes32,bytes32,bytes32,bytes32,bytes32)', 'tuple(bytes32,bytes32,bytes32,bytes32,bytes32)'],
       [
         [
           ethers.zeroPadValue(ethers.toUtf8Bytes('sourceAddress'), 32),
-          ethers.zeroPadValue('0x' + cleanAddress(walletAddress), 32),
+          ethers.zeroPadValue('0x' + addressHex, 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('amount'), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes(CONFIG.BRIDGE_AMOUNT.toString()), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('tokenAddress'), 32)
@@ -24,7 +25,7 @@ class Utils {
         [
           ethers.zeroPadValue('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('destinationAddress'), 32),
-          ethers.zeroPadValue('0x' + cleanAddress(destinationAddress), 32),
+          ethers.zeroPadValue('0x' + destinationHex, 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('Sei'), 32),
           ethers.zeroPadValue(ethers.toUtf8Bytes('SEI'), 32)
         ]
