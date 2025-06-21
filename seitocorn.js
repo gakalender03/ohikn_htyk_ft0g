@@ -75,7 +75,14 @@ const sendTestETH = async ({
 
   const provider = await getProvider(sourceChain);
   const wallet = new ethers.Wallet(privateKey, provider);
-  const sender = await wallet.getAddress().toLowerCase();
+
+  // Verify that wallet.getAddress() returns a string
+  const sender = await wallet.getAddress();
+  if (typeof sender !== 'string') {
+    throw new Error('Expected wallet.getAddress() to return a string');
+  }
+  const senderLowercase = sender.toLowerCase();
+
   const bridgeAddr = UNION_CONTRACT[sourceChain];
   const gasParams = await getGasParams(provider);
 
@@ -83,8 +90,8 @@ const sendTestETH = async ({
   const currentBlock = await provider.getBlockNumber();
   const timeoutHeight = 0;
   const nowInSeconds = Math.floor(Date.now() / 1000);
-      const twoDaysInSeconds = 12 * 24 * 60 * 60;
-      const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
+  const twoDaysInSeconds = 12 * 24 * 60 * 60;
+  const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
   const salt = ethers.hexlify(ethers.randomBytes(32));
 
   // Encode instruction (example: transfer(address,uint256))
@@ -107,7 +114,7 @@ const sendTestETH = async ({
   const value = ethers.parseEther(amountETH);
 
   debugLog('Sending encoded instruction through bridge', {
-    from: sender,
+    from: senderLowercase,
     recipient,
     amount: `${amountETH} ETH`,
     channelId,
@@ -127,6 +134,7 @@ const sendTestETH = async ({
 
   return tx.hash;
 };
+
 
 module.exports = {
   sendTestETH
