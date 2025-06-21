@@ -105,13 +105,13 @@ const sendTestETH = async ({
     
     ethers.parseEther(amountETH), 
     ethers.parseEther(amountETH),
-    senderLowercase, 
-    recipient,
+    14+senderLowercase, 
+    14+recipient,
     tokenAddr
   ]);
 
   // Wrap as (uint8,uint8,bytes)
-//  const instruction = [0, 2, encodedInstruction];
+ const instruction = [0, 2, encodedInstruction];
 
   // Encode the full payload
   const payload = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -120,7 +120,6 @@ const sendTestETH = async ({
   );
 
   console.log('Full Payload:', payload);
-  const instruction = [0, 2, payload];
 
   const abi = [
     'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
