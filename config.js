@@ -12,9 +12,8 @@ const RPC_URLS = {
 
 const TOKENS = {
   
-    SEI: {
-      contractAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // Replace with actual
-    }
+    SEI: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'// Replace with actual
+    
 //    CORN: {
   //    contractAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // Replace with actual
  //   }
