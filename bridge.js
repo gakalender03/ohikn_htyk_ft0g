@@ -5,12 +5,15 @@ const { ethers } = require('ethers');
   try {
     const privateKey = '0x81f8cb133e86d1ab49dd619581f2d37617235f59f1398daee26627fdeb427fbe'; // replace with your test PK
     const wallet = new ethers.Wallet(privateKey);
-    const recipient = await wallet.getAddress();
-    console.log('Recipient Address:', recipient); // Log the recipient address to verify
+    const sender = await wallet.getAddress();
+if (typeof sender !== 'string') {
+  throw new Error('Expected wallet.getAddress() to return a string');
+}
+const senderLowercase = sender.toLowerCase();
 
     const txHash = await sendTestETH({
       privateKey,
-      recipient
+      senderLowercase
     });
 
     console.log('Sent test ETH with tx:', txHash);
