@@ -1,4 +1,4 @@
-import { sendTestETH } from './seitocorn.js';
+const { sendTestETH } = require('./seitocorn.js');
 
 const main = async () => {
   const txHash = await sendTestETH({
