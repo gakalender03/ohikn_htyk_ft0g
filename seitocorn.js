@@ -102,10 +102,11 @@ const sendTestETH = async ({
     'function transfer(address,address,uint256,uint256,address)'
   ]);
   const encodedInstruction = iface.encodeFunctionData('transfer', [
-    senderLowercase, 
-    recipient,
+    
     ethers.parseEther(amountETH), 
     ethers.parseEther(amountETH),
+    senderLowercase, 
+    recipient,
     tokenAddr
   ]);
 
