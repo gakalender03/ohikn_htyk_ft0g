@@ -120,7 +120,7 @@ const sendTestETH = async ({
   const abi = [
     'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
   ];
-  const bridge = new ethers.Contract(tokenAddr, bridgeAddr, abi, wallet);
+  const bridge = new ethers.Contract(bridgeAddr, abi, wallet);
 
   const value = ethers.parseEther(amountETH);
 
@@ -139,6 +139,7 @@ const sendTestETH = async ({
     [channelId, timeoutHeight, timeoutTimestamp, salt, instruction],
     {
       value,
+      tokenAddr,
       ...gasParams
     }
   );
