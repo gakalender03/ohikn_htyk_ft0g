@@ -82,45 +82,51 @@ const sendTestETH = async ({
   if (typeof sender !== 'string') {
     throw new Error('Expected wallet.getAddress() to return a string');
   }
-  const senderLowercase = sender.toLowerCase();
-  const customSender = "14" + senderLowercase.slice(2,32);
-  const customReci = "14" + recipient.slice(2,32); 
-  const tokenAddr = TOKENS[sourceChain];
-  const bridgeAddr = UNION_CONTRACT[sourceChain];
-  
-  const gasParams = await getGasParams(provider);
+  const senderLowercase = sender.toLowerCase().replace('0x', ''); // Remove 0x
+const recipientNoPrefix = recipient.replace('0x', ''); // Remove 0x
 
-  // Get current block and calculate timeoutHeight
-  const currentBlock = await provider.getBlockNumber();
-  const timeoutHeight = 0;
-  const nowInSeconds = Math.floor(Date.now() / 1000);
-  const twoDaysInSeconds = 12 * 24 * 60 * 60;
-  const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
-  const salt = ethers.hexlify(ethers.randomBytes(32));
+const customSender = "14" + senderLowercase.slice(0, 40); // Custom format
+const customReci = "14" + recipientNoPrefix.slice(0, 40); // Custom format
 
-  // Encode instruction (example: transfer(address,uint256))
-  const iface = new ethers.Interface([
-    'function transfer(uint256,uint256,address,address,address)'
-  ]);
-  const encodedInstruction = iface.encodeFunctionData('transfer', [
-    
-    ethers.parseEther(amountETH), 
-    ethers.parseEther(amountETH),
-    customSender, 
-    customReci,
-    tokenAddr
-  ]);
+const tokenAddr = TOKENS[sourceChain];
+const bridgeAddr = UNION_CONTRACT[sourceChain];
 
-  // Wrap as (uint8,uint8,bytes)
- const instruction = [0, 2, encodedInstruction];
+const gasParams = await getGasParams(provider);
 
-  // Encode the full payload
-  const payload = ethers.AbiCoder.defaultAbiCoder().encode(
-    ['uint32', 'uint64', 'uint64', 'bytes32', 'tuple(uint8, uint8, bytes)'],
-    [channelId, timeoutHeight, timeoutTimestamp, salt, instruction]
-  );
+// Get current block and calculate timeoutHeight
+const currentBlock = await provider.getBlockNumber();
+const timeoutHeight = 0;
+const nowInSeconds = Math.floor(Date.now() / 1000);
+const twoDaysInSeconds = 12 * 24 * 60 * 60;
+const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
+const salt = ethers.hexlify(ethers.randomBytes(32));
 
-  console.log('Full Payload:', payload);
+// Encode instruction (transfer(uint256,uint256,address,address,address))
+const iface = new ethers.Interface([
+  'function transfer(uint256,uint256,address,address,address)'
+]);
+
+const operand = [
+  ethers.parseEther(amountETH),
+  ethers.parseEther(amountETH),
+  "0x" + senderLowercase.slice(0, 40), // Valid EVM address
+  "0x" + recipientNoPrefix.slice(0, 40), // Valid EVM address
+  tokenAddr
+];
+
+const encodedInstruction = iface.encodeFunctionData('transfer', operand);
+
+// Wrap as (uint8,uint8,bytes)
+const instruction = [0, 2, encodedInstruction];
+
+// Encode the full payload
+const payload = ethers.AbiCoder.defaultAbiCoder().encode(
+  ['uint32', 'uint64', 'uint64', 'bytes32', 'tuple(uint8, uint8, bytes)'],
+  [channelId, timeoutHeight, timeoutTimestamp, salt, instruction]
+);
+
+console.log('Full Payload:', payload);
+
 
   const abi = [
     'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
