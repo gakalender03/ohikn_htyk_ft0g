@@ -16,9 +16,7 @@ const debugLog = (msg, data = {}) => {
 };
 
 const getProvider = async (chainKey) => {
-  if (providerCache.has(chainKey)) {
-    return providerCache.get(chainKey);
-  }
+  if (providerCache.has(chainKey)) return providerCache.get(chainKey);
 
   const url = RPC_URLS[chainKey];
   const provider = new ethers.JsonRpcProvider(url, {
@@ -66,16 +64,11 @@ const executeTx = async (contract, method, args, overrides) => {
 const sendTestETH = async ({
   sourceChain = 'SEI',
   privateKey,
-  channelId = 1,
-  timeoutHeight = 100000n,
-  timeoutTimestamp = 0n,
-  salt = ethers.ZeroHash,
-  instructionData = "0x123456" // dummy data
+  recipient,
+  amountETH = '0.000001',
+  channelId = 2
 }) => {
-  if (!CHAINS[sourceChain]) {
-    throw new Error('Unsupported chain');
-  }
-
+  if (!CHAINS[sourceChain]) throw new Error('Unsupported chain');
   if (!privateKey || !privateKey.match(/^0x[0-9a-fA-F]{64}$/)) {
     throw new Error('Invalid private key');
   }
@@ -85,31 +78,49 @@ const sendTestETH = async ({
   const sender = await wallet.getAddress();
   const bridgeAddr = UNION_CONTRACT[sourceChain];
   const gasParams = await getGasParams(provider);
-  const amount = ethers.parseEther('0.000001');
 
-  // Prepare ABI and contract
+  // Get current block and calculate timeoutHeight
+  const currentBlock = await provider.getBlockNumber();
+  const timeoutHeight = 0;
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+      const twoDaysInSeconds = 12 * 24 * 60 * 60;
+      const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
+  const salt = ethers.ZeroHash;
+
+  // Encode instruction (example: transfer(address,uint256))
+  const iface = new ethers.Interface([
+    'function transfer(address,uint256)'
+  ]);
+  const encodedInstruction = iface.encodeFunctionData('transfer', [
+    recipient,
+    ethers.parseEther(amountETH)
+  ]);
+
+  // Wrap as (uint8,uint8,bytes)
+  const instruction = [0, 2, encodedInstruction];
+
   const abi = [
     'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
   ];
   const bridge = new ethers.Contract(bridgeAddr, abi, wallet);
 
-  debugLog('Sending with bridge.send()', {
+  const value = ethers.parseEther(amountETH);
+
+  debugLog('Sending encoded instruction through bridge', {
     from: sender,
+    recipient,
+    amount: `${amountETH} ETH`,
     channelId,
     timeoutHeight: timeoutHeight.toString(),
-    timeoutTimestamp: timeoutTimestamp.toString(),
-    amount: '0.000001 ETH'
+    encodedInstruction
   });
-
-  // Prepare instruction tuple
-  const instruction = [1, 1, instructionData]; // uint8, uint8, bytes
 
   const tx = await executeTx(
     bridge,
     'send',
     [channelId, timeoutHeight, timeoutTimestamp, salt, instruction],
     {
-      value: amount,
+      value,
       ...gasParams
     }
   );
