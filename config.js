@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+const { ethers } = require('ethers');
 
 // Chain IDs (Updated)
 export const CHAINS = {
