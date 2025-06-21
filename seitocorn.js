@@ -7,7 +7,7 @@ const {
   GAS_SETTINGS,
   RPC_TIMEOUTS,
   TRANSACTION_SETTINGS
-} require=('./config.js');
+} = require('./config.js');
 
 const providerCache = new Map();
 
@@ -64,7 +64,7 @@ const executeTx = async (contract, method, args, overrides) => {
   return receipt;
 };
 
-export const sendTestETH = async ({
+const sendTestETH = async ({
   sourceChain = 'SEI',
   destChain = 'CORN',
   privateKey,
@@ -123,4 +123,9 @@ export const sendTestETH = async ({
     );
     return tx.hash;
   }
+};
+
+// Export CommonJS style
+module.exports = {
+  sendTestETH
 };
