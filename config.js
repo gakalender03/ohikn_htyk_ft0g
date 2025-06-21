@@ -11,14 +11,14 @@ const RPC_URLS = {
 };
 
 const TOKENS = {
-  USDC: {
+  
     SEI: {
       contractAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // Replace with actual
     }
 //    CORN: {
   //    contractAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // Replace with actual
  //   }
-  }
+  
 };
 
 const UNION_CONTRACT = {
