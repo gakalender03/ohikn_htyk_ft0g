@@ -90,6 +90,7 @@ const customReci = "14" + recipientNoPrefix.slice(0, 40); // Custom format
 
 const tokenAddr = TOKENS[sourceChain];
 const bridgeAddr = UNION_CONTRACT[sourceChain];
+const quoteToken = '0xe86bed5b0813430df660d17363b89fe9bd8232d8';
 
 const gasParams = await getGasParams(provider);
 
@@ -103,7 +104,7 @@ const salt = ethers.hexlify(ethers.randomBytes(32));
 
 // Encode instruction (transfer(uint256,uint256,address,address,address))
 const iface = new ethers.Interface([
-  'function transfer(uint256,uint256,address,address,address)'
+  'function transfer(uint256,uint256,address,address,address, address)'
 ]);
 
 const operand = [
@@ -111,7 +112,8 @@ const operand = [
   ethers.parseEther(amountETH),
   "0x" + senderLowercase.slice(0, 40), // Valid EVM address
   "0x" + recipientNoPrefix.slice(0, 40), // Valid EVM address
-  tokenAddr
+  tokenAddr, 
+  quoteToken
 ];
 
 const encodedInstruction = iface.encodeFunctionData('transfer', operand);
