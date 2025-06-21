@@ -63,11 +63,12 @@ const executeTx = async (contract, method, args, overrides) => {
 
 const sendTestETH = async ({
   sourceChain = 'SEI',
+const sendTestETH = async ({
+  sourceChain = 'SEI',
   privateKey,
   recipient,
   amountETH = '0.000001',
   channelId = 2
-
 }) => {
   if (!CHAINS[sourceChain]) throw new Error('Unsupported chain');
   if (!privateKey || !privateKey.match(/^0x[0-9a-fA-F]{64}$/)) {
@@ -97,10 +98,8 @@ const sendTestETH = async ({
 
   // Encode instruction (example: transfer(address,uint256))
   const iface = new ethers.Interface([
-   'function transfer(address,uint256)'
-    
-    ]);
-
+    'function transfer(address,uint256)'
+  ]);
   const encodedInstruction = iface.encodeFunctionData('transfer', [
     recipient,
     ethers.parseEther(amountETH)
@@ -108,6 +107,14 @@ const sendTestETH = async ({
 
   // Wrap as (uint8,uint8,bytes)
   const instruction = [0, 2, encodedInstruction];
+
+  // Encode the full payload
+  const payload = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['uint32', 'uint64', 'uint64', 'bytes32', 'tuple(uint8, uint8, bytes)'],
+    [channelId, timeoutHeight, timeoutTimestamp, salt, instruction]
+  );
+
+  console.log('Full Payload:', payload);
 
   const abi = [
     'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
@@ -137,6 +144,7 @@ const sendTestETH = async ({
 
   return tx.hash;
 };
+
 
 
 module.exports = {
