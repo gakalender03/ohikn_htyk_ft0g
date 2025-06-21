@@ -75,7 +75,7 @@ const sendTestETH = async ({
 
   const provider = await getProvider(sourceChain);
   const wallet = new ethers.Wallet(privateKey, provider);
-  const sender = await wallet.getAddress();
+  const sender = await wallet.getAddress().toLowerCase();
   const bridgeAddr = UNION_CONTRACT[sourceChain];
   const gasParams = await getGasParams(provider);
 
