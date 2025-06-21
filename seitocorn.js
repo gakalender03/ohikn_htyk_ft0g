@@ -66,7 +66,6 @@ const sendTestETH = async ({
   sourceChain = 'SEI',
   privateKey,
   recipient,
-  tokenAddr, 
   amountETH = '0.000001',
   channelId = 2
 }) => {
@@ -100,11 +99,12 @@ const sendTestETH = async ({
 
   // Encode instruction (example: transfer(address,uint256))
   const iface = new ethers.Interface([
-    'function transfer(address,uint256)'
+    'function transfer(address,uint256,address)'
   ]);
   const encodedInstruction = iface.encodeFunctionData('transfer', [
     recipient,
-    ethers.parseEther(amountETH)
+    ethers.parseEther(amountETH), 
+    tokenAddr
   ]);
 
   // Wrap as (uint8,uint8,bytes)
