@@ -6,19 +6,19 @@ const CHAINS = {
 };
 
 const RPC_URLS = {
-  SEI: 'https://evm-rpc-testnet.sei-apis.com',
-  CORN: 'https://rpc.ankr.com/corn_testnet'
+  SEI: 'https://evm-rpc-testnet.sei-apis.com'
+//  CORN: 'https://rpc.ankr.com/corn_testnet'
 };
 
 const TOKENS = {
-  SEI: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // ETH for SEI
-  CORN: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' // ETH for CORN
+  SEI: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' // ETH for SEI
+ 
 };
 
 
 const UNION_CONTRACT = {
-  SEI: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03', 
-  CORN: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03'
+  SEI: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03' 
+  // CORN: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03'
 };
 
 const EXPLORERS = {
