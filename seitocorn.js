@@ -66,8 +66,7 @@ const sendTestETH = async ({
   privateKey,
   recipient,
   amountETH = '0.000001',
-  channelId = 2, 
-  timeoutTimestamp, 
+  channelId = 2,
   salt
 
 }) => {
