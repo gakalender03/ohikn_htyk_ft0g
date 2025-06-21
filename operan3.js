@@ -1,6 +1,8 @@
-import { ethers } from 'ethers';
+// Import ethers.js using CommonJS syntax
+const { ethers } = require('ethers');
 
-const seiEvmRpcUrl = 'https://evm-rpc-testnet.sei-apis.com'; // Replace with actual Sei EVM RPC URL
+// Replace with the actual Sei EVM RPC URL (for testing purposes)
+const seiEvmRpcUrl = 'https://evm-rpc-testnet.sei-apis.com'; // Example: 'https://sei-evm-rpc-url.com'
 
 // Create a provider to connect to Sei EVM
 const provider = new ethers.JsonRpcProvider(seiEvmRpcUrl);
