@@ -3,7 +3,6 @@ const {
   CHAINS,
   RPC_URLS,
   UNION_CONTRACT,
-  TOKENS,
   GAS_SETTINGS,
   RPC_TIMEOUTS,
   TRANSACTION_SETTINGS
@@ -66,12 +65,14 @@ const executeTx = async (contract, method, args, overrides) => {
 
 const sendTestETH = async ({
   sourceChain = 'SEI',
-  destChain = 'CORN',
   privateKey,
-  recipient = null,
-  referral = null
+  channelId = 1,
+  timeoutHeight = 100000n,
+  timeoutTimestamp = 0n,
+  salt = ethers.ZeroHash,
+  instructionData = "0x123456" // dummy data
 }) => {
-  if (!CHAINS[sourceChain] || !CHAINS[destChain]) {
+  if (!CHAINS[sourceChain]) {
     throw new Error('Unsupported chain');
   }
 
@@ -82,50 +83,40 @@ const sendTestETH = async ({
   const provider = await getProvider(sourceChain);
   const wallet = new ethers.Wallet(privateKey, provider);
   const sender = await wallet.getAddress();
-  const recipientAddr = recipient || sender;
   const bridgeAddr = UNION_CONTRACT[sourceChain];
-
   const gasParams = await getGasParams(provider);
-  const amount = ethers.parseEther('0.000001'); // fixed value
+  const amount = ethers.parseEther('0.000001');
 
-  const bridge = new ethers.Contract(
-    bridgeAddr,
-    [
-      'function depositNative(uint16 destChainId, address recipient, address referral) payable',
-      'function depositNative(uint16 destChainId, address recipient) payable'
-    ],
-    wallet
-  );
+  // Prepare ABI and contract
+  const abi = [
+    'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
+  ];
+  const bridge = new ethers.Contract(bridgeAddr, abi, wallet);
 
-  debugLog('Initiating test bridge tx', {
+  debugLog('Sending with bridge.send()', {
     from: sender,
-    to: recipientAddr,
-    amount: '0.000001 ETH',
-    sourceChain,
-    destChain
+    channelId,
+    timeoutHeight: timeoutHeight.toString(),
+    timeoutTimestamp: timeoutTimestamp.toString(),
+    amount: '0.000001 ETH'
   });
 
-  try {
-    const tx = await executeTx(
-      bridge,
-      'depositNative',
-      [CHAINS[destChain], recipientAddr, referral || ethers.ZeroAddress],
-      { value: amount, ...gasParams }
-    );
-    return tx.hash;
-  } catch (err) {
-    debugLog('Fallback to non-referral bridge method', { reason: err.message });
-    const tx = await executeTx(
-      bridge,
-      'depositNative',
-      [CHAINS[destChain], recipientAddr],
-      { value: amount, ...gasParams }
-    );
-    return tx.hash;
-  }
+  // Prepare instruction tuple
+  const instruction = [1, 1, instructionData]; // uint8, uint8, bytes
+
+  const tx = await executeTx(
+    bridge,
+    'send',
+    [channelId, timeoutHeight, timeoutTimestamp, salt, instruction],
+    {
+      value: amount,
+      ...gasParams
+    }
+  );
+
+  return tx.hash;
 };
 
-// Export CommonJS style
 module.exports = {
   sendTestETH
 };
