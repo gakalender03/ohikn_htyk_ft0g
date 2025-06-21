@@ -11,14 +11,10 @@ const RPC_URLS = {
 };
 
 const TOKENS = {
-  
-    SEI: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'// Replace with actual
-    
-//    CORN: {
-  //    contractAddress: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // Replace with actual
- //   }
-  
+  SEI: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // ETH for SEI
+  CORN: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' // ETH for CORN
 };
+
 
 const UNION_CONTRACT = {
   SEI: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03'
