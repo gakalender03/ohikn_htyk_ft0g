@@ -18,12 +18,12 @@ const TOKENS = {
 
 const UNION_CONTRACT = {
   SEI: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03'
-//  CORN: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03'
+  CORN: '0x5FbE74A283f7954f10AA04C2eDf55578811aeb03'
 };
 
 const EXPLORERS = {
   SEI: 'https://seitrace.com',
-//  CORN: 'https://corn-testnet.etherscan.io'
+  CORN: 'https://corn-testnet.etherscan.io'
 };
 
 const GAS_SETTINGS = {
