@@ -106,6 +106,23 @@ const sendTestETH = async ({
   // Construct the instruction data
   const instructionData = {
     _index: "0",
+    _instruction_hash: ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify({
+      opcode: 3,
+      operand: {
+        _type: "FungibleAssetOrder",
+        baseAmount: ethers.toBeHex(ethers.parseEther(amountETH)),
+        baseToken: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        baseTokenDecimals: 18,
+        baseTokenName: "Sei",
+        baseTokenPath: "0x0",
+        baseTokenSymbol: "SEI",
+        quoteAmount: ethers.toBeHex(ethers.parseEther(amountETH)),
+        quoteToken: quoteToken,
+        receiver: customReci,
+        sender: customSender
+      },
+      version: 1
+    }) + Date.now())),
     opcode: 3,
     operand: {
       _type: "FungibleAssetOrder",
@@ -123,15 +140,18 @@ const sendTestETH = async ({
     version: 1
   };
 
-  // Generate a unique _instruction_hash
-  const nonce = Date.now().toString(); // Use a timestamp as a nonce
-  const _instruction_hash = generateInstructionHash(instructionData, nonce);
-
   // Construct the instruction payload
   const instructionPayload = {
     instruction: {
       _index: "",
-      _instruction_hash: _instruction_hash,
+      _instruction_hash: ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify({
+        opcode: 2,
+        operand: {
+          _type: "Batch",
+          instructions: [instructionData]
+        },
+        version: 0
+      }) + Date.now())),
       opcode: 2,
       operand: {
         _type: "Batch",
@@ -143,14 +163,64 @@ const sendTestETH = async ({
     salt: salt
   };
 
+  // Define the ABI types for proper encoding
+  const fungibleAssetOrderType = `
+    tuple(
+      string _type,
+      bytes32 baseAmount,
+      address baseToken,
+      uint8 baseTokenDecimals,
+      string baseTokenName,
+      string baseTokenPath,
+      string baseTokenSymbol,
+      bytes32 quoteAmount,
+      address quoteToken,
+      string receiver,
+      string sender
+    )
+  `;
+
+  const instructionType = `
+    tuple(
+      string _index,
+      bytes32 _instruction_hash,
+      uint8 opcode,
+      ${fungibleAssetOrderType} operand,
+      uint8 version
+    )
+  `;
+
+  const batchOperandType = `
+    tuple(
+      string _type,
+      ${instructionType}[] instructions
+    )
+  `;
+
+  const mainInstructionType = `
+    tuple(
+      string _index,
+      bytes32 _instruction_hash,
+      uint8 opcode,
+      ${batchOperandType} operand,
+      uint8 version
+    )
+  `;
+
+  const payloadType = `
+    tuple(
+      ${mainInstructionType} instruction,
+      string path,
+      bytes32 salt
+    )
+  `;
+
   // Encode the instruction payload
-  const encodedInstruction = ethers.AbiCoder.defaultAbiCoder().encode(
-    ['tuple(tuple(string,bytes32,uint8,tuple(string,tuple(string,bytes32,uint8,tuple(string,bytes32,uint8,string,string,string,string,string,address,address),uint8)[],uint8)),string,bytes32)'],
-    [instructionPayload]
-  );
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const encodedInstruction = abiCoder.encode([payloadType], [instructionPayload]);
 
   // Encode the full payload
-  const payload = ethers.AbiCoder.defaultAbiCoder().encode(
+  const payload = abiCoder.encode(
     ['uint32', 'uint64', 'uint64', 'bytes32', 'bytes'],
     [channelId, timeoutHeight, timeoutTimestamp, salt, encodedInstruction]
   );
