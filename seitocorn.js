@@ -66,8 +66,7 @@ const sendTestETH = async ({
   privateKey,
   recipient,
   amountETH = '0.000001',
-  channelId = 2,
-  salt
+  channelId = 2
 
 }) => {
   if (!CHAINS[sourceChain]) throw new Error('Unsupported chain');
