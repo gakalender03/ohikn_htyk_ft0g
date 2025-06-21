@@ -62,12 +62,6 @@ const executeTx = async (contract, method, args, overrides) => {
   return receipt;
 };
 
-// Function to generate a unique _instruction_hash
-const generateInstructionHash = (instructionData, nonce = '') => {
-  const serializedData = JSON.stringify(instructionData) + nonce;
-  return ethers.keccak256(ethers.toUtf8Bytes(serializedData));
-};
-
 const sendTestETH = async ({
   sourceChain = 'SEI',
   privateKey,
@@ -163,61 +157,105 @@ const sendTestETH = async ({
     salt: salt
   };
 
-  // Define the ABI types for proper encoding
-  const fungibleAssetOrderType = `
-    tuple(
-      string _type,
-      bytes32 baseAmount,
-      address baseToken,
-      uint8 baseTokenDecimals,
-      string baseTokenName,
-      string baseTokenPath,
-      string baseTokenSymbol,
-      bytes32 quoteAmount,
-      address quoteToken,
-      string receiver,
-      string sender
-    )
-  `;
+  // Define the ABI types in a simplified way
+  const types = {
+    FungibleAssetOrder: [
+      { name: "_type", type: "string" },
+      { name: "baseAmount", type: "bytes32" },
+      { name: "baseToken", type: "address" },
+      { name: "baseTokenDecimals", type: "uint8" },
+      { name: "baseTokenName", type: "string" },
+      { name: "baseTokenPath", type: "string" },
+      { name: "baseTokenSymbol", type: "string" },
+      { name: "quoteAmount", type: "bytes32" },
+      { name: "quoteToken", type: "address" },
+      { name: "receiver", type: "string" },
+      { name: "sender", type: "string" }
+    ],
+    Instruction: [
+      { name: "_index", type: "string" },
+      { name: "_instruction_hash", type: "bytes32" },
+      { name: "opcode", type: "uint8" },
+      { name: "operand", type: "FungibleAssetOrder" },
+      { name: "version", type: "uint8" }
+    ],
+    BatchOperand: [
+      { name: "_type", type: "string" },
+      { name: "instructions", type: "Instruction[]" }
+    ],
+    MainInstruction: [
+      { name: "_index", type: "string" },
+      { name: "_instruction_hash", type: "bytes32" },
+      { name: "opcode", type: "uint8" },
+      { name: "operand", type: "BatchOperand" },
+      { name: "version", type: "uint8" }
+    ],
+    Payload: [
+      { name: "instruction", type: "MainInstruction" },
+      { name: "path", type: "string" },
+      { name: "salt", type: "bytes32" }
+    ]
+  };
 
-  const instructionType = `
-    tuple(
-      string _index,
-      bytes32 _instruction_hash,
-      uint8 opcode,
-      ${fungibleAssetOrderType} operand,
-      uint8 version
-    )
-  `;
+  // Flatten the structure for encoding
+  const flattenedPayload = {
+    instruction: {
+      _index: instructionPayload.instruction._index,
+      _instruction_hash: instructionPayload.instruction._instruction_hash,
+      opcode: instructionPayload.instruction.opcode,
+      operand: {
+        _type: instructionPayload.instruction.operand._type,
+        instructions: instructionPayload.instruction.operand.instructions.map(inst => ({
+          _index: inst._index,
+          _instruction_hash: inst._instruction_hash,
+          opcode: inst.opcode,
+          operand: inst.operand,
+          version: inst.version
+        }))
+      },
+      version: instructionPayload.instruction.version
+    },
+    path: instructionPayload.path,
+    salt: instructionPayload.salt
+  };
 
-  const batchOperandType = `
-    tuple(
-      string _type,
-      ${instructionType}[] instructions
-    )
-  `;
-
-  const mainInstructionType = `
-    tuple(
-      string _index,
-      bytes32 _instruction_hash,
-      uint8 opcode,
-      ${batchOperandType} operand,
-      uint8 version
-    )
-  `;
-
-  const payloadType = `
-    tuple(
-      ${mainInstructionType} instruction,
-      string path,
-      bytes32 salt
-    )
-  `;
-
-  // Encode the instruction payload
+  // Encode using the ABI coder
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
-  const encodedInstruction = abiCoder.encode([payloadType], [instructionPayload]);
+  const encodedInstruction = abiCoder.encode(
+    [
+      "tuple(" +
+        "string _index, " +
+        "bytes32 _instruction_hash, " +
+        "uint8 opcode, " +
+        "tuple(" +
+          "string _type, " +
+          "tuple(" +
+            "string _index, " +
+            "bytes32 _instruction_hash, " +
+            "uint8 opcode, " +
+            "tuple(" +
+              "string _type, " +
+              "bytes32 baseAmount, " +
+              "address baseToken, " +
+              "uint8 baseTokenDecimals, " +
+              "string baseTokenName, " +
+              "string baseTokenPath, " +
+              "string baseTokenSymbol, " +
+              "bytes32 quoteAmount, " +
+              "address quoteToken, " +
+              "string receiver, " +
+              "string sender" +
+            ") operand, " +
+            "uint8 version" +
+          ")[] instructions" +
+        ") operand, " +
+        "uint8 version" +
+      ") instruction, " +
+      "string path, " +
+      "bytes32 salt"
+    ],
+    [flattenedPayload]
+  );
 
   // Encode the full payload
   const payload = abiCoder.encode(
