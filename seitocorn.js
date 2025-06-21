@@ -66,7 +66,11 @@ const sendTestETH = async ({
   privateKey,
   recipient,
   amountETH = '0.000001',
-  channelId = 2
+  channelId = 2, 
+  timeoutHeight, 
+  timeoutTimestamp, 
+  salt,
+  instruction
 }) => {
   if (!CHAINS[sourceChain]) throw new Error('Unsupported chain');
   if (!privateKey || !privateKey.match(/^0x[0-9a-fA-F]{64}$/)) {
