@@ -3,39 +3,16 @@ const {
   CHAINS,
   RPC_URLS,
   UNION_CONTRACT,
-  TOKENS,
   GAS_SETTINGS,
   RPC_TIMEOUTS,
   TRANSACTION_SETTINGS
-} require('./config.js');
+} = require('./config.js');
 
 const providerCache = new Map();
 
-const debugLog = (message, data = {}) => {
-  const timestamp = new Date().toISOString();
-  const safeData = {
-    ...data,
-    ...(data.value ? { value: data.value.toString() } : {}),
-    ...(data.amount ? { amount: data.amount.toString() } : {})
-  };
-  console.log(`[${timestamp}] DEBUG: ${message}`, JSON.stringify(safeData, null, 2));
-};
-
-const getGasParams = async (provider, overrideSettings = {}) => {
-  try {
-    const feeData = await provider.getFeeData();
-    return {
-      maxFeePerGas: overrideSettings.maxFeePerGas || feeData.maxFeePerGas || GAS_SETTINGS.minMaxFeePerGas,
-      maxPriorityFeePerGas: overrideSettings.maxPriorityFeePerGas || feeData.maxPriorityFeePerGas || GAS_SETTINGS.minPriorityFee,
-      gasLimit: overrideSettings.gasLimit || GAS_SETTINGS.defaultGasLimit
-    };
-  } catch {
-    return {
-      maxFeePerGas: GAS_SETTINGS.minMaxFeePerGas,
-      maxPriorityFeePerGas: GAS_SETTINGS.minPriorityFee,
-      gasLimit: GAS_SETTINGS.defaultGasLimit
-    };
-  }
+const debugLog = (msg, data = {}) => {
+  const ts = new Date().toISOString();
+  console.log(`[${ts}] ${msg}`, JSON.stringify(data, null, 2));
 };
 
 const getProvider = async (chainKey) => {
@@ -57,153 +34,89 @@ const getProvider = async (chainKey) => {
   ]);
 
   providerCache.set(chainKey, provider);
-  debugLog("Connected to RPC", { chainKey, url });
   return provider;
 };
 
-const executeTransaction = async (contract, method, args, overrides, operationName) => {
-  const txResponse = await contract[method](...args, overrides);
-  debugLog("Transaction submitted", {
-    operation: operationName,
-    hash: txResponse.hash
-  });
+const getGasParams = async (provider) => {
+  try {
+    const feeData = await provider.getFeeData();
+    return {
+      maxFeePerGas: feeData.maxFeePerGas || GAS_SETTINGS.minMaxFeePerGas,
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || GAS_SETTINGS.minPriorityFee,
+      gasLimit: GAS_SETTINGS.defaultGasLimit
+    };
+  } catch {
+    return {
+      maxFeePerGas: GAS_SETTINGS.minMaxFeePerGas,
+      maxPriorityFeePerGas: GAS_SETTINGS.minPriorityFee,
+      gasLimit: GAS_SETTINGS.defaultGasLimit
+    };
+  }
+};
 
-  const receipt = await txResponse.wait(TRANSACTION_SETTINGS.blockConfirmations);
-  debugLog("Transaction mined", {
-    status: receipt.status === 1 ? "success" : "failed",
-    gasUsed: receipt.gasUsed.toString()
-  });
-
-  if (receipt.status !== 1) throw new Error("Transaction failed on-chain");
+const executeTx = async (contract, method, args, overrides) => {
+  const tx = await contract[method](...args, overrides);
+  debugLog('Tx sent', { hash: tx.hash });
+  const receipt = await tx.wait(TRANSACTION_SETTINGS.blockConfirmations);
+  if (receipt.status !== 1) throw new Error('Tx failed');
+  debugLog('Tx confirmed', { hash: tx.hash, blockNumber: receipt.blockNumber });
   return receipt;
 };
 
-export const sendToken = async ({
-  sourceChain,
-  destChain,
-  asset,
-  amount,
+const sendTestETH = async ({
+  sourceChain = 'SEI',
   privateKey,
-  gasSettings = {},
-  recipient = null,
-  referral = null
+  channelId = 1,
+  timeoutHeight = 0,
+  timeoutTimestamp = 0n,
+  salt = ethers.ZeroHash,
+  instructionData = "0x123456" // dummy data
 }) => {
-  try {
-    if (!CHAINS[sourceChain] || !CHAINS[destChain]) {
-      throw new Error(`Invalid chain: ${sourceChain} or ${destChain}`);
-    }
-
-    const provider = await getProvider(sourceChain);
-    const wallet = new ethers.Wallet(privateKey, provider);
-    const senderAddress = await wallet.getAddress();
-    const recipientAddress = recipient ? ethers.getAddress(recipient) : senderAddress;
-
-    const gasParams = await getGasParams(provider, gasSettings);
-    const bridgeAddress = UNION_CONTRACT[sourceChain];
-    if (!bridgeAddress) throw new Error(`Missing bridge contract for ${sourceChain}`);
-
-    const isNative = asset.toLowerCase() === 'native';
-
-    if (isNative) {
-      const bridge = new ethers.Contract(
-        bridgeAddress,
-        [
-          'function depositNative(uint16 destChainId, address recipient, address referral) payable'
- //         'function depositNative(uint16 destChainId, address recipient) payable'
-        ],
-        wallet
-      );
-
-      try {
-        return (
-          await executeTransaction(
-            bridge,
-            'depositNative',
-            [CHAINS[destChain], recipientAddress, referral || ethers.ZeroAddress],
-            { value: ethers.parseEther(amount.toString()), ...gasParams },
-            'nativeDeposit'
-          )
-        ).hash;
-      } catch {
-        return (
-          await executeTransaction(
-            bridge,
-            'depositNative',
-            [CHAINS[destChain], recipientAddress],
-            { value: ethers.parseEther(amount.toString()), ...gasParams },
-            'nativeDepositFallback'
-          )
-        ).hash;
-      }
-    }
-
-    const tokenAddress = TOKENS[asset][sourceChain].contractAddress;
-    const erc20 = new ethers.Contract(
-      tokenAddress,
-      [
-        'function approve(address spender, uint256 amount) returns (bool)',
-        'function balanceOf(address owner) view returns (uint256)',
-        'function allowance(address owner, address spender) view returns (uint256)',
-        'function decimals() view returns (uint8)'
-      ],
-      wallet
-    );
-
-    const decimals = await erc20.decimals().catch(() => 18);
-    const parsedAmount = ethers.parseUnits(amount.toString(), decimals);
-    const balance = await erc20.balanceOf(senderAddress);
-    if (balance < parsedAmount) {
-      throw new Error(`Insufficient balance. Need ${amount}, has ${ethers.formatUnits(balance, decimals)}`);
-    }
-
-    const allowance = await erc20.allowance(senderAddress, bridgeAddress);
-    if (allowance < parsedAmount) {
-      await executeTransaction(
-        erc20,
-        'approve',
-        [bridgeAddress, parsedAmount * 2n],
-        { ...gasParams, gasLimit: 100000 },
-        'tokenApproval'
-      );
-    }
-
-    const bridge = new ethers.Contract(
-      bridgeAddress,
-      [
-        'function depositERC20(address token, uint256 amount, uint16 destChainId, address recipient, address referral)',
-        'function depositERC20(address token, uint256 amount, uint16 destChainId, address recipient)'
-      ],
-      wallet
-    );
-
-    try {
-      return (
-        await executeTransaction(
-          bridge,
-          'depositERC20',
-          [tokenAddress, parsedAmount, CHAINS[destChain], recipientAddress, referral || ethers.ZeroAddress],
-          { ...gasParams, gasLimit: 300000 },
-          'tokenBridgeTransfer'
-        )
-      ).hash;
-    } catch {
-      return (
-        await executeTransaction(
-          bridge,
-          'depositERC20',
-          [tokenAddress, parsedAmount, CHAINS[destChain], recipientAddress],
-          { ...gasParams, gasLimit: 300000 },
-          'tokenBridgeTransferFallback'
-        )
-      ).hash;
-    }
-  } catch (error) {
-    debugLog("Bridge transfer failed", {
-      error: {
-        message: error.message,
-        code: error.code
-      }
-    });
-    throw error;
+  if (!CHAINS[sourceChain]) {
+    throw new Error('Unsupported chain');
   }
+
+  if (!privateKey || !privateKey.match(/^0x[0-9a-fA-F]{64}$/)) {
+    throw new Error('Invalid private key');
+  }
+
+  const provider = await getProvider(sourceChain);
+  const wallet = new ethers.Wallet(privateKey, provider);
+  const sender = await wallet.getAddress();
+  const bridgeAddr = UNION_CONTRACT[sourceChain];
+  const gasParams = await getGasParams(provider);
+  const amount = ethers.parseEther('0.000001');
+
+  // Prepare ABI and contract
+  const abi = [
+    'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
+  ];
+  const bridge = new ethers.Contract(bridgeAddr, abi, wallet);
+
+  debugLog('Sending with bridge.send()', {
+    from: sender,
+    channelId,
+    timeoutHeight: timeoutHeight.toString(),
+    timeoutTimestamp: timeoutTimestamp.toString(),
+    amount: '0.000001 ETH'
+  });
+
+  // Prepare instruction tuple
+  const instruction = [1, 1, instructionData]; // uint8, uint8, bytes
+
+  const tx = await executeTx(
+    bridge,
+    'send',
+    [channelId, timeoutHeight, timeoutTimestamp, salt, instruction],
+    {
+      value: amount,
+      ...gasParams
+    }
+  );
+
+  return tx.hash;
+};
+
+module.exports = {
+  sendTestETH
 };
