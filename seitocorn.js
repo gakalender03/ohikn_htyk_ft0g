@@ -99,7 +99,7 @@ const sendTestETH = async ({
 
   // Encode instruction (example: transfer(address,uint256))
   const iface = new ethers.Interface([
-    'function transfer(address,address,uint256,uint256,address)'
+    'function transfer(uint256,uint256,address,address,address)'
   ]);
   const encodedInstruction = iface.encodeFunctionData('transfer', [
     
