@@ -83,8 +83,8 @@ const sendTestETH = async ({
     throw new Error('Expected wallet.getAddress() to return a string');
   }
   const senderLowercase = sender.toLowerCase();
-  const customSender = "14" + senderLowercase.slice(2);
-  const customReci = "14" + recipient.slice(2); 
+  const customSender = "14" + senderLowercase.slice(2,32);
+  const customReci = "14" + recipient.slice(2,32); 
   const tokenAddr = TOKENS[sourceChain];
   const bridgeAddr = UNION_CONTRACT[sourceChain];
   
