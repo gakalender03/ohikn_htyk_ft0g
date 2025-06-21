@@ -14,7 +14,7 @@ const { ethers } = require('ethers');
     const senderLowercase = sender.toLowerCase();
 
     // Define the recipient address (replace with the actual recipient address)
-    const recipient = '0xa8068e71a3F46C888C39EA5deBa318C16393573B'; // Example recipient address
+    const recipient = '0xa8068e71a3f46c888c39ea5deba318c16393573b'; // Example recipient address
 
     console.log('Sender Address:', senderLowercase);
     console.log('Recipient Address:', recipient);
