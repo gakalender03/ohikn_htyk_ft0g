@@ -85,7 +85,7 @@ const sendTestETH = async ({
   const nowInSeconds = Math.floor(Date.now() / 1000);
       const twoDaysInSeconds = 12 * 24 * 60 * 60;
       const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
-  const salt = ethers.ZeroHash;
+  const salt = ethers.hexlify(ethers.randomBytes(32));
 
   // Encode instruction (example: transfer(address,uint256))
   const iface = new ethers.Interface([
