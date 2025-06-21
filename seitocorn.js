@@ -63,8 +63,6 @@ const executeTx = async (contract, method, args, overrides) => {
 
 const sendTestETH = async ({
   sourceChain = 'SEI',
-const sendTestETH = async ({
-  sourceChain = 'SEI',
   privateKey,
   recipient,
   amountETH = '0.000001',
@@ -144,8 +142,6 @@ const sendTestETH = async ({
 
   return tx.hash;
 };
-
-
 
 module.exports = {
   sendTestETH
