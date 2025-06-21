@@ -108,8 +108,8 @@ export const sendToken = async ({
       const bridge = new ethers.Contract(
         bridgeAddress,
         [
-          'function depositNative(uint16 destChainId, address recipient, address referral) payable',
-          'function depositNative(uint16 destChainId, address recipient) payable'
+          'function depositNative(uint16 destChainId, address recipient, address referral) payable'
+ //         'function depositNative(uint16 destChainId, address recipient) payable'
         ],
         wallet
       );
