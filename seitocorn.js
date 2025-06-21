@@ -66,6 +66,7 @@ const sendTestETH = async ({
   sourceChain = 'SEI',
   privateKey,
   recipient,
+  tokenAddr, 
   amountETH = '0.000001',
   channelId = 2
 }) => {
