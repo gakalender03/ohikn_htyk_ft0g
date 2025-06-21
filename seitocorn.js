@@ -1,5 +1,5 @@
 const { ethers } = require('ethers');
-const {
+import {
   CHAINS,
   RPC_URLS,
   UNION_CONTRACT,
@@ -7,7 +7,7 @@ const {
   GAS_SETTINGS,
   RPC_TIMEOUTS,
   TRANSACTION_SETTINGS
-} require('./config.js');
+} from './config.js';
 
 const providerCache = new Map();
 
