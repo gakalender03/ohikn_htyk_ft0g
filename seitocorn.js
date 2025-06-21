@@ -2,7 +2,7 @@ const { ethers } = require('ethers');
 const {
   CHAINS,
   RPC_URLS,
-  TOKENS, 
+  TOKENS,
   UNION_CONTRACT,
   GAS_SETTINGS,
   RPC_TIMEOUTS,
@@ -62,6 +62,12 @@ const executeTx = async (contract, method, args, overrides) => {
   return receipt;
 };
 
+// Function to generate a unique _instruction_hash
+const generateInstructionHash = (instructionData, nonce = '') => {
+  const serializedData = JSON.stringify(instructionData) + nonce;
+  return ethers.keccak256(ethers.toUtf8Bytes(serializedData));
+};
+
 const sendTestETH = async ({
   sourceChain = 'SEI',
   privateKey,
@@ -77,61 +83,82 @@ const sendTestETH = async ({
   const provider = await getProvider(sourceChain);
   const wallet = new ethers.Wallet(privateKey, provider);
 
-  // Verify that wallet.getAddress() returns a string
   const sender = await wallet.getAddress();
-  if (typeof sender !== 'string') {
-    throw new Error('Expected wallet.getAddress() to return a string');
-  }
-  const senderLowercase = sender.toLowerCase().replace('0x', ''); // Remove 0x
-const recipientNoPrefix = recipient.replace('0x', ''); // Remove 0x
+  const senderLowercase = sender.toLowerCase().replace('0x', '');
+  const recipientNoPrefix = recipient.replace('0x', '');
 
-const customSender = "14" + senderLowercase.slice(0, 40); // Custom format
-const customReci = "14" + recipientNoPrefix.slice(0, 40); // Custom format
+  const customSender = "14" + senderLowercase.slice(0, 40);
+  const customReci = "14" + recipientNoPrefix.slice(0, 40);
 
-const tokenAddr = TOKENS[sourceChain];
-const bridgeAddr = UNION_CONTRACT[sourceChain];
-const quoteToken = '0xe86bed5b0813430df660d17363b89fe9bd8232d8';
+  const tokenAddr = TOKENS[sourceChain];
+  const bridgeAddr = UNION_CONTRACT[sourceChain];
+  const quoteToken = '0xe86bed5b0813430df660d17363b89fe9bd8232d8';
 
-const gasParams = await getGasParams(provider);
+  const gasParams = await getGasParams(provider);
 
-// Get current block and calculate timeoutHeight
-const currentBlock = await provider.getBlockNumber();
-const timeoutHeight = 0;
-const nowInSeconds = Math.floor(Date.now() / 1000);
-const twoDaysInSeconds = 12 * 24 * 60 * 60;
-const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
-const salt = ethers.hexlify(ethers.randomBytes(32));
+  const currentBlock = await provider.getBlockNumber();
+  const timeoutHeight = 0;
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const twoDaysInSeconds = 12 * 24 * 60 * 60;
+  const timeoutTimestamp = BigInt(nowInSeconds + twoDaysInSeconds) * BigInt(1000000000);
+  const salt = ethers.hexlify(ethers.randomBytes(32));
 
-// Encode instruction (transfer(uint256,uint256,address,address,address))
-const iface = new ethers.Interface([
-  'function transfer(uint256,uint256,address,address,address, address)'
-]);
+  // Construct the instruction data
+  const instructionData = {
+    _index: "0",
+    opcode: 3,
+    operand: {
+      _type: "FungibleAssetOrder",
+      baseAmount: ethers.toBeHex(ethers.parseEther(amountETH)),
+      baseToken: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      baseTokenDecimals: 18,
+      baseTokenName: "Sei",
+      baseTokenPath: "0x0",
+      baseTokenSymbol: "SEI",
+      quoteAmount: ethers.toBeHex(ethers.parseEther(amountETH)),
+      quoteToken: quoteToken,
+      receiver: customReci,
+      sender: customSender
+    },
+    version: 1
+  };
 
-const operand = [
-  ethers.parseEther(amountETH),
-  ethers.parseEther(amountETH),
-  "0x" + senderLowercase.slice(0, 40), // Valid EVM address
-  "0x" + recipientNoPrefix.slice(0, 40), // Valid EVM address
-  tokenAddr, 
-  quoteToken
-];
+  // Generate a unique _instruction_hash
+  const nonce = Date.now().toString(); // Use a timestamp as a nonce
+  const _instruction_hash = generateInstructionHash(instructionData, nonce);
 
-const encodedInstruction = iface.encodeFunctionData('transfer', operand);
+  // Construct the instruction payload
+  const instructionPayload = {
+    instruction: {
+      _index: "",
+      _instruction_hash: _instruction_hash,
+      opcode: 2,
+      operand: {
+        _type: "Batch",
+        instructions: [instructionData]
+      },
+      version: 0
+    },
+    path: "0x0",
+    salt: salt
+  };
 
-// Wrap as (uint8,uint8,bytes)
-const instruction = [0, 2, encodedInstruction];
+  // Encode the instruction payload
+  const encodedInstruction = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['tuple(tuple(string,bytes32,uint8,tuple(string,tuple(string,bytes32,uint8,tuple(string,bytes32,uint8,string,string,string,string,string,address,address),uint8)[],uint8)),string,bytes32)'],
+    [instructionPayload]
+  );
 
-// Encode the full payload
-const payload = ethers.AbiCoder.defaultAbiCoder().encode(
-  ['uint32', 'uint64', 'uint64', 'bytes32', 'tuple(uint8, uint8, bytes)'],
-  [channelId, timeoutHeight, timeoutTimestamp, salt, instruction]
-);
+  // Encode the full payload
+  const payload = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['uint32', 'uint64', 'uint64', 'bytes32', 'bytes'],
+    [channelId, timeoutHeight, timeoutTimestamp, salt, encodedInstruction]
+  );
 
-console.log('Full Payload:', payload);
-
+  console.log('Full Payload:', payload);
 
   const abi = [
-    'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
+    'function send(uint32,uint64,uint64,bytes32,bytes) payable'
   ];
   const bridge = new ethers.Contract(bridgeAddr, abi, wallet);
 
@@ -149,7 +176,7 @@ console.log('Full Payload:', payload);
   const tx = await executeTx(
     bridge,
     'send',
-    [channelId, timeoutHeight, timeoutTimestamp, salt, instruction],
+    [channelId, timeoutHeight, timeoutTimestamp, salt, encodedInstruction],
     {
       value,
       tokenAddr,
