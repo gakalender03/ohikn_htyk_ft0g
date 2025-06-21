@@ -2,6 +2,7 @@ const { ethers } = require('ethers');
 const {
   CHAINS,
   RPC_URLS,
+  TOKENS, 
   UNION_CONTRACT,
   GAS_SETTINGS,
   RPC_TIMEOUTS,
@@ -82,8 +83,10 @@ const sendTestETH = async ({
     throw new Error('Expected wallet.getAddress() to return a string');
   }
   const senderLowercase = sender.toLowerCase();
-
+  
+  const tokenAddr = TOKENS[sourceChain];
   const bridgeAddr = UNION_CONTRACT[sourceChain];
+  
   const gasParams = await getGasParams(provider);
 
   // Get current block and calculate timeoutHeight
@@ -117,7 +120,7 @@ const sendTestETH = async ({
   const abi = [
     'function send(uint32,uint64,uint64,bytes32,(uint8,uint8,bytes)) payable'
   ];
-  const bridge = new ethers.Contract(bridgeAddr, abi, wallet);
+  const bridge = new ethers.Contract(tokenAddr, bridgeAddr, abi, wallet);
 
   const value = ethers.parseEther(amountETH);
 
