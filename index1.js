@@ -23,7 +23,8 @@ const INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';
 const EXPLORER_URL = 'https://chainscan-galileo.0g.ai/tx/';
 
 const provider = new ethers.JsonRpcProvider(URL_RPC);
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 5; // Wallets per batch
+const TX_PER_WALLET = 500; // Transactions per wallet
 const GAS_PRICE = ethers.parseUnits('0.002', 'gwei');
 const GAS_LIMIT = 300000n;
 
@@ -70,28 +71,41 @@ async function uploadFile(wallet, imageData) {
   return tx;
 }
 
+async function processWallet(wallet) {
+  const results = [];
+  const promises = [];
+
+  for (let i = 0; i < TX_PER_WALLET; i++) {
+    promises.push(
+      (async () => {
+        try {
+          const image = await getRandomImage();
+          const fileHash = await generateFileHash(image);
+          const tx = await uploadFile(wallet, fileHash);
+          logger.success(`TX sent from ${wallet.address}: ${EXPLORER_URL}${tx.hash}`);
+          results.push({ success: true, hash: tx.hash });
+        } catch (error) {
+          logger.error(`Failed for ${wallet.address}: ${error.message}`);
+          results.push({ success: false, error: error.message });
+        }
+      })()
+    );
+  }
+
+  // Execute all transactions in parallel
+  await Promise.all(promises);
+
+  return results;
+}
+
 async function processBatch(wallets) {
   const results = [];
-  
-  for (const wallet of wallets) {
-    try {
-      logger.loading(`Processing ${wallet.address}`);
-      const image = await getRandomImage();
-      const fileHash = await generateFileHash(image);
-      
-      const tx = await uploadFile(wallet, fileHash);
-      logger.success(`TX sent: ${EXPLORER_URL}${tx.hash}`);
-      
-      results.push({ success: true, hash: tx.hash });
-    } catch (error) {
-      logger.error(`Failed for ${wallet.address}: ${error.message}`);
-      results.push({ success: false, error: error.message });
-    }
-    
-    // Small delay between wallet processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-  
+  const promises = wallets.map(wallet => processWallet(wallet));
+
+  // Process all wallets in the batch in parallel
+  const batchResults = await Promise.all(promises);
+  results.push(...batchResults);
+
   return results;
 }
 
@@ -99,27 +113,27 @@ async function main() {
   try {
     logger.section('Starting 0G Storage Batch Upload');
     logger.info(`Loaded ${PRIVATE_KEYS.length} private keys`);
-    
+
     // Initialize all wallets
     const wallets = PRIVATE_KEYS.map(key => new ethers.Wallet(key, provider));
-    
+
     // Process in batches
     for (let i = 0; i < wallets.length; i += BATCH_SIZE) {
       const batch = wallets.slice(i, i + BATCH_SIZE);
-      logger.section(`Processing Batch ${Math.floor(i/BATCH_SIZE) + 1}`);
-      
+      logger.section(`Processing Batch ${Math.floor(i / BATCH_SIZE) + 1}`);
+
       const results = await processBatch(batch);
-      const successCount = results.filter(r => r.success).length;
-      
-      logger.info(`Batch completed: ${successCount}/${batch.length} successful`);
-      
+      const successCount = results.flat().filter(r => r.success).length;
+
+      logger.info(`Batch completed: ${successCount}/${batch.length * TX_PER_WALLET} successful`);
+
       // Wait before next batch
       if (i + BATCH_SIZE < wallets.length) {
         logger.loading(`Waiting before next batch...`);
         await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
-    
+
     logger.section('All batches processed');
     logger.success('Done');
   } catch (error) {
