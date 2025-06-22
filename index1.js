@@ -28,6 +28,9 @@ const TX_PER_WALLET = 500; // Transactions per wallet
 const GAS_PRICE = ethers.parseUnits('0.002', 'gwei');
 const GAS_LIMIT = 300000n;
 
+// Nonce manager to track nonces for each wallet
+const nonceManager = new Map();
+
 async function getRandomImage() {
   const response = await axios.get('https://picsum.photos/800/600', {
     responseType: 'arraybuffer'
@@ -41,7 +44,7 @@ async function generateFileHash(imageBuffer) {
   return '0x' + crypto.createHash('sha256').update(hashInput).digest('hex');
 }
 
-async function uploadFile(wallet, imageData) {
+async function uploadFile(wallet, imageData, nonce) {
   const contentHash = crypto.randomBytes(32);
   const data = ethers.concat([
     Buffer.from(METHOD_ID.slice(2), 'hex'),
@@ -65,7 +68,8 @@ async function uploadFile(wallet, imageData) {
     data,
     value: randomValue,
     gasPrice: GAS_PRICE,
-    gasLimit: GAS_LIMIT
+    gasLimit: GAS_LIMIT,
+    nonce: nonce // Use the provided nonce
   });
 
   return tx;
@@ -75,17 +79,23 @@ async function processWallet(wallet) {
   const results = [];
   const promises = [];
 
+  // Initialize nonce for the wallet
+  let currentNonce = await provider.getTransactionCount(wallet.address, 'latest');
+  nonceManager.set(wallet.address, currentNonce);
+
   for (let i = 0; i < TX_PER_WALLET; i++) {
+    const nonce = nonceManager.get(wallet.address);
     promises.push(
       (async () => {
         try {
           const image = await getRandomImage();
           const fileHash = await generateFileHash(image);
-          const tx = await uploadFile(wallet, fileHash);
-          logger.success(`TX sent from ${wallet.address}: ${EXPLORER_URL}${tx.hash}`);
+          const tx = await uploadFile(wallet, fileHash, nonce);
+          logger.success(`TX sent from ${wallet.address} (Nonce: ${nonce}): ${EXPLORER_URL}${tx.hash}`);
           results.push({ success: true, hash: tx.hash });
+          nonceManager.set(wallet.address, nonce + 1); // Increment nonce
         } catch (error) {
-          logger.error(`Failed for ${wallet.address}: ${error.message}`);
+          logger.error(`Failed for ${wallet.address} (Nonce: ${nonce}): ${error.message}`);
           results.push({ success: false, error: error.message });
         }
       })()
