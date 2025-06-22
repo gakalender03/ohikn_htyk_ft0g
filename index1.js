@@ -26,7 +26,7 @@ const provider = new ethers.JsonRpcProvider(URL_RPC);
 const BATCH_SIZE = 5; // Wallets per batch
 const TX_PER_WALLET = 500; // Transactions per wallet
 const GAS_PRICE = ethers.parseUnits('0.002', 'gwei');
-const GAS_LIMIT = 300000n;
+const GAS_LIMIT = 1000000n;
 
 // Nonce manager to track nonces for each wallet
 const nonceManager = new Map();
@@ -59,8 +59,8 @@ async function uploadFile(wallet, imageData, nonce) {
   ]);
 
   // Random value between 0.000001 and 0.000004 ETH
-  const minValue = ethers.parseEther('0.000001');
-  const maxValue = ethers.parseEther('0.000004');
+  const minValue = ethers.parseEther('0.0000001');
+  const maxValue = ethers.parseEther('0.0000004');
   const randomValue = minValue + BigInt(Math.floor(Math.random() * Number(maxValue - minValue)));
 
   const tx = await wallet.sendTransaction({
