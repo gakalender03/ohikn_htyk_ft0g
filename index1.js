@@ -75,15 +75,11 @@ async function uploadFile(wallet, imageData, nonce) {
   return tx;
 }
 
-async function processWallet(wallet) {
+async function processBatch(wallets) {
   const results = [];
   const promises = [];
 
-  // Initialize nonce for the wallet
-  let currentNonce = await provider.getTransactionCount(wallet.address, 'latest');
-  nonceManager.set(wallet.address, currentNonce);
-
-  for (let i = 0; i < TX_PER_WALLET; i++) {
+  for (const wallet of wallets) {
     const nonce = nonceManager.get(wallet.address);
     promises.push(
       (async () => {
@@ -102,19 +98,8 @@ async function processWallet(wallet) {
     );
   }
 
-  // Execute all transactions in parallel
+  // Execute all transactions in the batch in parallel
   await Promise.all(promises);
-
-  return results;
-}
-
-async function processBatch(wallets) {
-  const results = [];
-  const promises = wallets.map(wallet => processWallet(wallet));
-
-  // Process all wallets in the batch in parallel
-  const batchResults = await Promise.all(promises);
-  results.push(...batchResults);
 
   return results;
 }
@@ -127,18 +112,25 @@ async function main() {
     // Initialize all wallets
     const wallets = PRIVATE_KEYS.map(key => new ethers.Wallet(key, provider));
 
+    // Initialize nonces for all wallets
+    for (const wallet of wallets) {
+      const nonce = await provider.getTransactionCount(wallet.address, 'latest');
+      nonceManager.set(wallet.address, nonce);
+    }
+
     // Process in batches
-    for (let i = 0; i < wallets.length; i += BATCH_SIZE) {
-      const batch = wallets.slice(i, i + BATCH_SIZE);
-      logger.section(`Processing Batch ${Math.floor(i / BATCH_SIZE) + 1}`);
+    for (let i = 0; i < TX_PER_WALLET; i++) {
+      logger.section(`Processing Batch ${i + 1}/${TX_PER_WALLET}`);
 
+      // Process a batch of wallets (1 TX per wallet)
+      const batch = wallets.slice(0, BATCH_SIZE); // Always process the first 5 wallets
       const results = await processBatch(batch);
-      const successCount = results.flat().filter(r => r.success).length;
+      const successCount = results.filter(r => r.success).length;
 
-      logger.info(`Batch completed: ${successCount}/${batch.length * TX_PER_WALLET} successful`);
+      logger.info(`Batch completed: ${successCount}/${batch.length} successful`);
 
       // Wait before next batch
-      if (i + BATCH_SIZE < wallets.length) {
+      if (i < TX_PER_WALLET - 1) {
         logger.loading(`Waiting before next batch...`);
         await new Promise(resolve => setTimeout(resolve, 10000));
       }
