@@ -1,4 +1,4 @@
-// Minimal 0G Batch Upload Script
+// Minimal 0G Batch Upload Script with Batch Logging
 require('dotenv').config();
 const { ethers } = require('ethers');
 const axios = require('axios');
@@ -51,37 +51,12 @@ async function prepareImageData(buffer) {
   throw new Error('Cannot generate unique hash');
 }
 
-async function upload(wallet, provider) {
-  const image = await fetchImage();
-  const imgData = await prepareImageData(image);
-
-  await axios.post(`${INDEXER_URL}/file/segment`, {
-    root: imgData.root,
-    index: 0,
-    data: imgData.data,
-    proof: { siblings: [imgData.root], path: [] }
-  });
-
-  const contentHash = crypto.randomBytes(32);
-  const data = ethers.concat([
-    Buffer.from(METHOD_ID.slice(2), 'hex'),
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000020', 'hex'),
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000014', 'hex'),
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000060', 'hex'),
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000080', 'hex'),
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex'),
-    contentHash,
-    Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
-  ]);
-
-  const value = getRandomValue();
-  const gasPrice = ethers.parseUnits('0.002', 'gwei');
+async function upload(wallet, provider, value, data) {
   const tx = await wallet.sendTransaction({
     to: CONTRACT_ADDRESS,
     data,
     value,
-    gasPrice,
+    gasPrice: ethers.parseUnits('0.002', 'gwei'),
     gasLimit: 1000000,
     chainId: CHAIN_ID
   });
@@ -91,18 +66,51 @@ async function upload(wallet, provider) {
 async function main() {
   const provider = new ethers.JsonRpcProvider(URL_RPC);
   const wallets = PRIVATE_KEYS.map(k => new ethers.Wallet(k, provider));
-
   const txPerWallet = 1000;
 
   for (let round = 1; round <= txPerWallet; round++) {
-    await Promise.all(wallets.map(async (wallet) => {
+    console.log(`Batch ${round} processing`);
+
+    await Promise.all(wallets.map(async (wallet, idx) => {
       try {
-        await upload(wallet, provider);
-        console.log(`✓ Wallet ${wallet.address}`);
+        const address = wallet.address;
+        const balance = await provider.getBalance(address);
+        const nonce = await provider.getTransactionCount(address);
+        console.log(`Wallet ${idx + 1} ${address} balance: ${ethers.formatEther(balance)} OG nonce: ${nonce}`);
+
+        const image = await fetchImage();
+        const imgData = await prepareImageData(image);
+        const contentHash = crypto.randomBytes(32);
+        const value = getRandomValue();
+
+        const data = ethers.concat([
+          Buffer.from(METHOD_ID.slice(2), 'hex'),
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000020', 'hex'),
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000014', 'hex'),
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000060', 'hex'),
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000080', 'hex'),
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex'),
+          contentHash,
+          Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
+        ]);
+
+        await axios.post(`${INDEXER_URL}/file/segment`, {
+          root: imgData.root,
+          index: 0,
+          data: imgData.data,
+          proof: { siblings: [imgData.root], path: [] }
+        });
+
+        await upload(wallet, provider, value, data);
+        console.log(`✓ Wallet ${idx + 1}`);
       } catch {
-        console.log(`✗ Wallet ${wallet.address}`);
+        console.log(`✗ Wallet ${idx + 1}`);
       }
     }));
+
+    console.log(`Batch ${round} completed`);
+    console.log('__________________________');
   }
   process.exit(0);
 }
