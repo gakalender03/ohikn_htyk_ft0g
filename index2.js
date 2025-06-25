@@ -1,4 +1,4 @@
-l// Minimal 0G Batch Upload Script with Batch Logging
+// Minimal 0G Batch Upload Script with Batch Logging
 require('dotenv').config();
 const { ethers } = require('ethers');
 const axios = require('axios');
