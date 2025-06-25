@@ -25,8 +25,8 @@ const EXPLORER_URL = 'https://chainscan-galileo.0g.ai/tx/';
 
 const provider = new ethers.JsonRpcProvider(URL_RPC);
 const BATCH_SIZE = 8; // Wallets per batch
-const TX_PER_WALLET = 2000; // Transactions per wallet
-const GAS_PRICE = ethers.parseUnits('0.002', 'gwei');
+const TX_PER_WALLET = 1; // Transactions per wallet
+const GAS_PRICE = ethers.parseUnits('0.1', 'gwei');
 const GAS_LIMIT = 1000000n;
 
 // Nonce manager to track nonces for each wallet
