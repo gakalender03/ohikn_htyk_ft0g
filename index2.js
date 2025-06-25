@@ -30,12 +30,6 @@ async function fetchImage() {
   return res.data;
 }
 
-// Example usage
-fetchImage().then(imageData => {
-  console.log('Image data fetched successfully:', imageData);
-}).catch(error => {
-  console.error('Error fetching image:', error);
-});
 
 async function checkFileExists(hash) {
   try {
