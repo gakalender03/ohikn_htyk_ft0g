@@ -121,12 +121,18 @@ async function prepareImageData(imageBuffer) {
   throw new Error('Failed to generate unique file hash');
 }
 
+function getRandomTransferValue() {
+  const min = 0.0000001;
+  const max = 0.0000004;
+  const rand = Math.random() * (max - min) + min;
+  return ethers.parseEther(rand.toFixed(18));
+}
+
 async function uploadToStorage(imageData, wallet, walletIndex, provider) {
   logger.loading(`Checking balance for ${wallet.address}...`);
   const balance = await provider.getBalance(wallet.address);
-  //const value = ethers.parseEther('0.00000839233398436224');
-  const value = ethers.parseEther('0.00000839233398436'); // 17 decimals, valid
-  const gasPrice = ethers.parseUnits('1.029599997', 'gwei');
+  const value = getRandomTransferValue();
+  const gasPrice = ethers.parseUnits('0.002', 'gwei');
 
   if (balance < value) throw new Error('Insufficient balance');
   logger.success(`Balance OK: ${ethers.formatEther(balance)} OG`);
@@ -153,7 +159,7 @@ async function uploadToStorage(imageData, wallet, walletIndex, provider) {
     Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
   ]);
 
-  const gasLimit = 300000n;
+  const gasLimit = 1000000n;
   const tx = await wallet.sendTransaction({
     to: CONTRACT_ADDRESS,
     data,
