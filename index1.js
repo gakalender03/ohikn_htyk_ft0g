@@ -26,7 +26,7 @@ const EXPLORER_URL = 'https://chainscan-galileo.0g.ai/tx/';
 const provider = new ethers.JsonRpcProvider(URL_RPC);
 const BATCH_SIZE = 8; // Wallets per batch
 const TX_PER_WALLET = 1; // Transactions per wallet
-const GAS_PRICE = ethers.parseUnits('0.1', 'gwei');
+const GAS_PRICE = ethers.parseUnits('0.002', 'gwei');
 const GAS_LIMIT = 1000000n;
 
 // Nonce manager to track nonces for each wallet
@@ -50,7 +50,7 @@ async function uploadFile(wallet, imageData, nonce) {
   const data = ethers.concat([
     Buffer.from(METHOD_ID.slice(2), 'hex'),
     Buffer.from('0000000000000000000000000000000000000000000000000000000000000020', 'hex'),
-    Buffer.from('00000000000000000000000000000000000000000000000000000000000000b5', 'hex'),
+    Buffer.from('0000000000000000000000000000000000000000000000000000000000000014', 'hex'),
     Buffer.from('0000000000000000000000000000000000000000000000000000000000000060', 'hex'),
     Buffer.from('0000000000000000000000000000000000000000000000000000000000000080', 'hex'),
     Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
