@@ -1,4 +1,4 @@
-// Minimal 0G Batch Upload Script with Batch Logging
+l// Minimal 0G Batch Upload Script with Batch Logging
 require('dotenv').config();
 const { ethers } = require('ethers');
 const axios = require('axios');
@@ -73,7 +73,7 @@ async function upload(wallet, provider, value, data) {
 async function main() {
   const provider = new ethers.JsonRpcProvider(URL_RPC);
   const wallets = PRIVATE_KEYS.map(k => new ethers.Wallet(k, provider));
-  const txPerWallet = 1;
+  const txPerWallet = 1000;
 
   for (let round = 1; round <= txPerWallet; round++) {
     console.log(`Batch ${round} processing`);
@@ -109,10 +109,10 @@ async function main() {
           proof: { siblings: [imgData.root], path: [] }
         });
 
-        await upload(wallet, provider, value, data);
-        console.log(`✓ Wallet ${idx + 1}`);
+   //     await upload(wallet, provider, value, data);
+   //     console.log(`✓ Wallet ${idx + 1}`);
       } catch {
-        console.log(`✗ Wallet ${idx + 1}`);
+     //   console.log(`✗ Wallet ${idx + 1}`);
       }
     }));
 
