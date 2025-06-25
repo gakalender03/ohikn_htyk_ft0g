@@ -200,8 +200,7 @@ async function main() {
 
     for (let round = 1; round <= txPerWallet; round++) {
       logger.section(`Batch ${round}`);
-      for (let i = 0; i < totalWallets; i++) {
-        const wallet = wallets[i];
+      await Promise.all(wallets.map(async (wallet, i) => {
         logger.process(`Tx #${round} from Wallet #${i + 1} [${wallet.address}]`);
         try {
           const image = await fetchRandomImage();
@@ -210,7 +209,7 @@ async function main() {
         } catch (e) {
           logger.error(`Wallet ${wallet.address} failed: ${e.message}`);
         }
-      }
+      }));
     }
 
     logger.bye('All batches complete. Bye bang!');
