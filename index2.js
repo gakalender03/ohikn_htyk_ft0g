@@ -1,11 +1,10 @@
-// Minimal 0G Batch Upload Script with Batch Logging
 require('dotenv').config();
 const { ethers } = require('ethers');
 const axios = require('axios');
 const crypto = require('crypto');
 
 const URL_RPC = process.env.URL_RPC;
-const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n').map(k => k.trim()).filter(k => k.length > 0 && k.startsWith('0x'));
+const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n').map(k => k.trim()).filter(k => k.startsWith('0x'));
 
 const CHAIN_ID = 16601;
 const CONTRACT_ADDRESS = '0xbD75117F80b4E22698D0Cd7612d92BDb8eaff628';
@@ -30,7 +29,6 @@ async function fetchImage() {
   return res.data;
 }
 
-
 async function checkFileExists(hash) {
   try {
     const res = await axios.get(`${INDEXER_URL}/file/info/${hash}`);
@@ -52,7 +50,7 @@ async function prepareImageData(buffer) {
   throw new Error('Cannot generate unique hash');
 }
 
-async function upload(wallet, provider, value, data) {
+async function upload(wallet, value, data) {
   const tx = await wallet.sendTransaction({
     to: CONTRACT_ADDRESS,
     data,
@@ -64,6 +62,53 @@ async function upload(wallet, provider, value, data) {
   await tx.wait();
 }
 
+async function processWallet(wallet, idx, provider) {
+  try {
+    const [balance, nonce] = await Promise.all([
+      provider.getBalance(wallet.address),
+      provider.getTransactionCount(wallet.address),
+    ]);
+
+    console.log(`Wallet ${idx + 1} ${wallet.address} balance: ${ethers.formatEther(balance)} OG nonce: ${nonce}`);
+
+    const [image, value] = await Promise.all([
+      fetchImage(),
+      getRandomValue()
+    ]);
+
+    const imgData = await prepareImageData(image);
+    const contentHash = crypto.randomBytes(32);
+
+    const data = ethers.concat([
+      Buffer.from(METHOD_ID.slice(2), 'hex'),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000020', 'hex'),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000014', 'hex'),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000060', 'hex'),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000080', 'hex'),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex'),
+      contentHash,
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
+    ]);
+
+    // Upload to indexer (no await to start sooner)
+    const indexerUpload = axios.post(`${INDEXER_URL}/file/segment`, {
+      root: imgData.root,
+      index: 0,
+      data: imgData.data,
+      proof: { siblings: [imgData.root], path: [] }
+    });
+
+    // Upload to chain
+    const txUpload = upload(wallet, value, data);
+
+    await Promise.all([indexerUpload, txUpload]);
+
+  } catch (err) {
+    console.log(`✗ Wallet ${idx + 1} failed`);
+  }
+}
+
 async function main() {
   const provider = new ethers.JsonRpcProvider(URL_RPC);
   const wallets = PRIVATE_KEYS.map(k => new ethers.Wallet(k, provider));
@@ -72,47 +117,13 @@ async function main() {
   for (let round = 1; round <= txPerWallet; round++) {
     console.log(`Batch ${round} processing`);
 
-    await Promise.all(wallets.map(async (wallet, idx) => {
-      try {
-        const address = wallet.address;
-        const balance = await provider.getBalance(address);
-        const nonce = await provider.getTransactionCount(address);
-        console.log(`Wallet ${idx + 1} ${address} balance: ${ethers.formatEther(balance)} OG nonce: ${nonce}`);
-
-        const image = await fetchImage();
-        const imgData = await prepareImageData(image);
-        const contentHash = crypto.randomBytes(32);
-        const value = getRandomValue();
-
-        const data = ethers.concat([
-          Buffer.from(METHOD_ID.slice(2), 'hex'),
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000020', 'hex'),
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000014', 'hex'),
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000060', 'hex'),
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000080', 'hex'),
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000001', 'hex'),
-          contentHash,
-          Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
-        ]);
-
-          await axios.post(`${INDEXER_URL}/file/segment`, {
-          root: imgData.root,
-          index: 0,
-          data: imgData.data,
-          proof: { siblings: [imgData.root], path: [] }
-        }); 
-
-        await upload(wallet, provider, value, data);
-   //     console.log(`✓ Wallet ${idx + 1}`);
-      } catch {
-     //   console.log(`✗ Wallet ${idx + 1}`);
-      }
-    }));
+    // Fully parallelized wallet tasks
+    await Promise.all(wallets.map((wallet, idx) => processWallet(wallet, idx, provider)));
 
     console.log(`Batch ${round} completed`);
     console.log('__________________________');
   }
+
   process.exit(0);
 }
 
