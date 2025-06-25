@@ -124,7 +124,8 @@ async function prepareImageData(imageBuffer) {
 async function uploadToStorage(imageData, wallet, walletIndex, provider) {
   logger.loading(`Checking balance for ${wallet.address}...`);
   const balance = await provider.getBalance(wallet.address);
-  const value = ethers.parseEther('0.00000839233398436224');
+  //const value = ethers.parseEther('0.00000839233398436224');
+  const value = ethers.parseEther('0.00000839233398436'); // 17 decimals, valid
   const gasPrice = ethers.parseUnits('1.029599997', 'gwei');
 
   if (balance < value) throw new Error('Insufficient balance');
