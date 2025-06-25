@@ -27,5 +27,5 @@ jobs:
       env:
           URL_RPC: ${{ secrets.URL_RPC }}
           PRIVATE_KEYS: ${{ secrets.PRIVATE_KEYS }}
-      run: node index1.js  # Run the script from the private repo
+      run: node index2.js  # Run the script from the private repo
       continue-on-error: true
