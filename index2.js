@@ -102,12 +102,12 @@ async function main() {
           Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
         ]);
 
-        await axios.post(`${INDEXER_URL}/file/segment`, {
+ /*       await axios.post(`${INDEXER_URL}/file/segment`, {
           root: imgData.root,
           index: 0,
           data: imgData.data,
           proof: { siblings: [imgData.root], path: [] }
-        });
+        }); */
 
    //     await upload(wallet, provider, value, data);
    //     console.log(`✓ Wallet ${idx + 1}`);
