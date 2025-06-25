@@ -25,7 +25,7 @@ const EXPLORER_URL = 'https://chainscan-galileo.0g.ai/tx/';
 
 const provider = new ethers.JsonRpcProvider(URL_RPC);
 const BATCH_SIZE = 8; // Wallets per batch
-const TX_PER_WALLET = 1; // Transactions per wallet
+const TX_PER_WALLET = 2000; // Transactions per wallet
 const GAS_PRICE = ethers.parseUnits('0.002', 'gwei');
 const GAS_LIMIT = 1000000n;
 
@@ -60,8 +60,8 @@ async function uploadFile(wallet, imageData, nonce) {
   ]);
 
   // Random value between 0.000001 and 0.000004 ETH
-  const minValue = ethers.parseEther('0.0009');
-  const maxValue = ethers.parseEther('0.00099');
+  const minValue = ethers.parseEther('0.0000001');
+  const maxValue = ethers.parseEther('0.0000004');
   const randomValue = minValue + BigInt(Math.floor(Math.random() * Number(maxValue - minValue)));
 
   const tx = await wallet.sendTransaction({
