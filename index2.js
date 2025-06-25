@@ -128,7 +128,7 @@ function getRandomTransferValue() {
   return ethers.parseEther(rand.toFixed(18));
 }
 
-async function uploadToStorage(imageData, wallet, walletIndex, provider) {
+async function uploadToStorage(imageData, wallet, provider) {
   logger.loading(`Checking balance for ${wallet.address}...`);
   const balance = await provider.getBalance(wallet.address);
   const value = getRandomTransferValue();
@@ -194,19 +194,26 @@ async function main() {
     const block = await provider.getBlockNumber();
     logger.success(`Synced at block ${block}`);
 
-    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
-      const wallet = new ethers.Wallet(PRIVATE_KEYS[i], provider);
-      logger.section(`Wallet #${i + 1} [${wallet.address}]`);
-      try {
-        const image = await fetchRandomImage();
-        const data = await prepareImageData(image);
-        await uploadToStorage(data, wallet, i, provider);
-      } catch (e) {
-        logger.error(`Wallet ${wallet.address} failed: ${e.message}`);
+    const wallets = PRIVATE_KEYS.map(key => new ethers.Wallet(key, provider));
+    const txPerWallet = 1000;
+    const totalWallets = wallets.length;
+
+    for (let round = 1; round <= txPerWallet; round++) {
+      logger.section(`Batch ${round}`);
+      for (let i = 0; i < totalWallets; i++) {
+        const wallet = wallets[i];
+        logger.process(`Tx #${round} from Wallet #${i + 1} [${wallet.address}]`);
+        try {
+          const image = await fetchRandomImage();
+          const data = await prepareImageData(image);
+          await uploadToStorage(data, wallet, provider);
+        } catch (e) {
+          logger.error(`Wallet ${wallet.address} failed: ${e.message}`);
+        }
       }
     }
 
-    logger.bye('All done. Bye bang!');
+    logger.bye('All batches complete. Bye bang!');
     process.exit(0);
   } catch (e) {
     logger.critical(`Fatal: ${e.message}`);
