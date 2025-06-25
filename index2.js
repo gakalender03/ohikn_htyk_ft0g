@@ -24,28 +24,10 @@ function getRandomValue() {
   return ethers.parseEther(rand.toFixed(18));
 }
 
-/*async function fetchImage() {
-  const url = IMAGE_SOURCES[Math.floor(Math.random() * IMAGE_SOURCES.length)];
-  const res = await axios.get(url, { responseType: 'arraybuffer' });
-  return res.data;
-}
-*/
-
 async function fetchImage() {
   const url = IMAGE_SOURCES[Math.floor(Math.random() * IMAGE_SOURCES.length)];
   const res = await axios.get(url, { responseType: 'arraybuffer' });
-  
-  // Get the image data as an array buffer
-  const imageData = res.data;
-  
-  // Calculate the size in bytes
-  const sizeInBytes = imageData.byteLength;
-  
-  // Print the size
-  console.log(`Image size: ${sizeInBytes} bytes`);
-  
-  // Return the image data
-  return imageData;
+  return res.data;
 }
 
 // Example usage
