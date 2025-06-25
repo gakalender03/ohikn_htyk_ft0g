@@ -56,7 +56,7 @@ async function upload(wallet, provider, value, data) {
     to: CONTRACT_ADDRESS,
     data,
     value,
-    gasPrice: ethers.parseUnits('0.002', 'gwei'),
+    gasPrice: ethers.parseUnits('0.1', 'gwei'),
     gasLimit: 1000000,
     chainId: CHAIN_ID
   });
@@ -66,7 +66,7 @@ async function upload(wallet, provider, value, data) {
 async function main() {
   const provider = new ethers.JsonRpcProvider(URL_RPC);
   const wallets = PRIVATE_KEYS.map(k => new ethers.Wallet(k, provider));
-  const txPerWallet = 1000;
+  const txPerWallet = 1;
 
   for (let round = 1; round <= txPerWallet; round++) {
     console.log(`Batch ${round} processing`);
