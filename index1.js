@@ -60,8 +60,8 @@ async function uploadFile(wallet, imageData, nonce) {
   ]);
 
   // Random value between 0.000001 and 0.000004 ETH
-  const minValue = ethers.parseEther('0.0007');
-  const maxValue = ethers.parseEther('0.0008');
+  const minValue = ethers.parseEther('0.0009');
+  const maxValue = ethers.parseEther('0.00099');
   const randomValue = minValue + BigInt(Math.floor(Math.random() * Number(maxValue - minValue)));
 
   const tx = await wallet.sendTransaction({
