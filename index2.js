@@ -8,7 +8,7 @@ const URL_RPC = process.env.URL_RPC;
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS.split('\n').map(k => k.trim()).filter(k => k.length > 0 && k.startsWith('0x'));
 
 const CHAIN_ID = 16601;
-const CONTRACT_ADDRESS = '0x5f1d96895e442fc0168fa2f9fb1ebef93cb5035e';
+const CONTRACT_ADDRESS = '0xbD75117F80b4E22698D0Cd7612d92BDb8eaff628';
 const METHOD_ID = '0xef3e12dc';
 const INDEXER_URL = 'https://indexer-storage-testnet-turbo.0g.ai';
 
