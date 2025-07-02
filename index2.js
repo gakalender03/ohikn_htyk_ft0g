@@ -112,7 +112,7 @@ async function processWallet(wallet, idx, provider) {
 async function main() {
   const provider = new ethers.JsonRpcProvider(URL_RPC);
   const wallets = PRIVATE_KEYS.map(k => new ethers.Wallet(k, provider));
-  const txPerWallet = 1000;
+  const txPerWallet = 5000;
 
   for (let round = 1; round <= txPerWallet; round++) {
     console.log(`Batch ${round} processing`);
